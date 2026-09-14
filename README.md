@@ -32,3 +32,4 @@ If the printed plate is not perfectly centred on the S10+ screen, use the **Cali
 ## Tweakables
 
 Gate speed, wireframe density, camera height, and LCD scroll rate.
+# SpinnerCockpit
