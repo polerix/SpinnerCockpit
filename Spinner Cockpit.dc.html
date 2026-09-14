@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Share+Tech+Mono&display=swap" rel="stylesheet"><style>html,body{margin:0;padding:0;background:#050607;overscroll-behavior:none}a{color:#6fe6ff}a:hover{color:#b7f2ff}@keyframes crawl{from{transform:translateX(0)}to{transform:translateX(-50%)}}</style></helmet>
+<div ref="{{stageRef}}" style="width:100%;aspect-ratio:146.6 / 69.4;max-height:100vh;margin:0 auto;position:relative;background:#000;overflow:hidden;container-type:size;font-family:'DotGothic16','Share Tech Mono',ui-monospace,monospace;user-select:none">
+
+  <div data-win="ts-l" style="position:absolute;left:8.5%;top:4.6%;width:37.4%;height:18.3%;background:#04050a;display:flex;align-items:center;overflow:hidden">
+    <div style="width:100%;overflow:hidden;white-space:nowrap;font-size:9.6cqh;line-height:1.6;letter-spacing:.04em;color:#f2f6ff;text-shadow:0 0 1.4cqh rgba(190,215,255,.45)">
+      <span ref="{{condRef}}" style="display:inline-block;animation:crawl 34s linear infinite"></span>
+    </div>
+  </div>
+
+  <div data-win="ts-r" style="position:absolute;left:53.7%;top:4.6%;width:37.4%;height:18.3%;background:#04050a;display:flex;align-items:center;overflow:hidden">
+    <div style="width:100%;overflow:hidden;white-space:nowrap;font-size:9.6cqh;line-height:1.6;letter-spacing:.04em;color:#f2f6ff;text-shadow:0 0 1.4cqh rgba(190,215,255,.45)">
+      <span ref="{{navRef}}" style="display:inline-block;animation:crawl 28s linear infinite"></span>
+    </div>
+  </div>
+
+  <div data-win="hud" style="position:absolute;left:21.5%;top:31%;width:56.2%;height:64.2%;background:#02040a;overflow:hidden">
+    <canvas ref="{{hudRef}}" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+  </div>
+
+  <div data-win="pad-l" ref="{{padLRef}}" style="position:absolute;left:2.2%;top:31%;width:17.8%;height:63.7%;display:grid;grid-template-columns:773fr 144fr 773fr 144fr 773fr;grid-template-rows:773fr 126fr 773fr 145fr 773fr 144fr 773fr 144fr 773fr">
+    <sc-for list="{{leftKeys}}" as="k" hint-placeholder-count="15">
+      <div style="position:relative;background:linear-gradient(180deg,#0d1620,#06090d);border:1px solid rgba(80,180,255,.3);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-size:3.2cqh;letter-spacing:.02em;color:rgba(214,238,255,.9);text-align:center;line-height:1">{{ k }}</span>
+        <i style="position:absolute;left:8%;top:8%;width:12%;aspect-ratio:1;border-radius:50%;background:#6fe6ff;opacity:.15"></i>
+      </div>
+    </sc-for>
+  </div>
+
+  <div data-win="pad-r" ref="{{padRRef}}" style="position:absolute;left:79.9%;top:31%;width:17.8%;height:63.7%;display:grid;grid-template-columns:773fr 144fr 773fr 144fr 773fr;grid-template-rows:773fr 126fr 773fr 145fr 773fr 144fr 773fr 144fr 773fr">
+    <sc-for list="{{rightKeys}}" as="k" hint-placeholder-count="15">
+      <div style="position:relative;background:linear-gradient(180deg,#0d1620,#06090d);border:1px solid rgba(80,180,255,.3);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-size:3.2cqh;letter-spacing:.02em;color:rgba(214,238,255,.9);text-align:center;line-height:1">{{ k }}</span>
+        <i style="position:absolute;left:8%;top:8%;width:12%;aspect-ratio:1;border-radius:50%;background:#ff00d8;opacity:.15"></i>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{scanlines}}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(180deg,rgba(0,0,0,0) 0,rgba(0,0,0,0) .28cqh,rgba(0,0,0,.34) .28cqh,rgba(0,0,0,.34) .56cqh);mix-blend-mode:multiply"></div>
+  </sc-if>
+
+  <sc-if value="{{showPlate}}" hint-placeholder-val="{{ true }}">{{ plate }}</sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1216,&quot;height&quot;:576},&quot;showPlate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Overlay&quot;},&quot;scanlines&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Overlay&quot;},&quot;speed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.2,&quot;max&quot;:2,&quot;step&quot;:0.05,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Flight&quot;},&quot;screenW&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:146.6,&quot;min&quot;:120,&quot;max&quot;:170,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;mm&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Calibration&quot;},&quot;screenH&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:69.4,&quot;min&quot;:55,&quot;max&quot;:85,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;mm&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Calibration&quot;},&quot;offsetX&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0,&quot;min&quot;:-8,&quot;max&quot;:8,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;mm&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Calibration&quot;},&quot;offsetY&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0,&quot;min&quot;:-8,&quot;max&quot;:8,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;mm&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Calibration&quot;}}">
+const R = () => React.createRef();
+
+// --- Geometry read directly from "Spinner Dashboard.svg" (mm, mask coordinate space).
+// viewBox x -87..81, y 80..165. Plate outer -86..80 / 81..164, centre (-3, 122.5).
+const G = {
+  plateCentre: [-3, 122.5],
+  strips: [[-63.33, 91.21, 54.87, 12.72], [2.45, 91.21, 54.87, 12.72]],
+  panel: [26.18, 21.19],
+  panelX: [-44.16, -16.09, 11.98],
+  panelY: [109.55, 132.6],
+  key: 7.73,
+  keyCols: [[-72.5, -63.33, -54.16], [40.43, 49.6, 58.77]],
+  keyRows: [109.55, 118.54, 127.72, 136.89, 146.06]
+};
+const WIN = (() => {
+  const w = G.strips.map(s => [s[0], s[1], s[2], s[3], 1.2]);
+  G.panelX.forEach(x => G.panelY.forEach(y => w.push([x, y, G.panel[0], G.panel[1], 1.3])));
+  G.keyCols.forEach(cols => cols.forEach(x => G.keyRows.forEach(y => w.push([x, y, G.key, G.key, 1.1]))));
+  return w;
+})();
+// the six centre screens act as one continuous window
+const HUD = [G.panelX[0], G.panelY[0],
+             G.panelX[2] + G.panel[0] - G.panelX[0],
+             G.panelY[1] + G.panel[1] - G.panelY[0]];
+const REGION = (() => {
+  const r = { 'ts-l': G.strips[0], 'ts-r': G.strips[1], hud: HUD };
+  const padH = G.keyRows[4] + G.key - G.keyRows[0];
+  G.keyCols.forEach((cols, n) => { r['pad-' + (n ? 'r' : 'l')] = [cols[0], G.keyRows[0], cols[2] + G.key - cols[0], padH]; });
+  return r;
+})();
+// gutters between the six screens, as fractions of the HUD box
+const GUTTER = {
+  v: [[(G.panelX[0] + G.panel[0] - HUD[0]) / HUD[2], (G.panelX[1] - HUD[0]) / HUD[2]],
+      [(G.panelX[1] + G.panel[0] - HUD[0]) / HUD[2], (G.panelX[2] - HUD[0]) / HUD[2]]],
+  h: [[(G.panelY[0] + G.panel[1] - HUD[1]) / HUD[3], (G.panelY[1] - HUD[1]) / HUD[3]]]
+};
+
+// --- Guidance gate, path taken verbatim from "Spinner Dashboard hud.svg" (477x241 space).
+const GATE_D = 'M222.82,211L85.25,211C59.724,211 39,190.276 39,164.75L39,76.25C39,50.724 59.724,30 85.25,30L222.82,30C223.577,30 224.27,30.428 224.608,31.106L237.5,56.889L250.392,31.106C250.73,30.428 251.423,30 252.18,30L389.75,30C415.276,30 436,50.724 436,76.25L436,164.75C436,190.276 415.276,211 389.75,211L252.18,211C251.423,211 250.73,210.572 250.392,209.894L237.5,184.111L224.608,209.894C224.27,210.572 223.577,211 222.82,211ZM221.584,207L235.711,178.745C236.05,178.067 236.742,177.639 237.5,177.639C238.258,177.639 238.95,178.067 239.289,178.745L253.416,207L389.75,207C413.068,207 432,188.068 432,164.75L432,76.25C432,52.932 413.068,34 389.75,34L253.416,34L239.289,62.255C238.95,62.933 238.258,63.361 237.5,63.361C236.742,63.361 236.05,62.933 235.711,62.255L221.584,34L85.25,34C61.932,34 43,52.932 43,76.25L43,164.75C43,188.068 61.932,207 85.25,207L221.584,207Z';
+const GATE_BOX = { x: 39, y: 30, w: 397, h: 181, cx: 237.5, cy: 120.5 };
+
+const CONDITIONS = 'WIND 240/18 KT · GUST 31 · ACID PRECIP MODERATE · VIS 1200 M · CEILING 900 FT · TFC ALERT SECTOR 4 CORRIDOR 7 · ICING RISK LOW · ALT 1480 FT · GS 186 KT · ⚠ WIND SHEAR 800 FT · ⚠ TYRELL AIRSPACE RESTRICTED — CLEARANCE 1019 · ';
+const DIRECTIONS = 'IN 400 M BEAR RIGHT 030° · HOLD 1500 FT · FOLLOW CORRIDOR 7 FOR 2.4 KM · IN 1.2 KM DESCEND 900 FT · LEFT 275° AT ARCADE STACK · CLEARED DIRECT SECTOR 4 PAD 9 · ETA 04:12 · ';
+
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    ['stageRef','hudRef','condRef','navRef','padLRef','padRRef'].forEach(k => this[k] = R());
+    this.t0 = performance.now();
+    this.gatePath = typeof Path2D !== 'undefined' ? new Path2D(GATE_D) : null;
+    this.buildings = [];
+    for (let i = 0; i < 44; i++) this.buildings.push(this.mkBuilding(30 + Math.random() * 640));
+    this.blocks = [];
+    for (let i = 0; i < 82; i++) this.blocks.push(this.mkBlock(55 + Math.random() * 945));
+    this.gates = [];
+    this.gateGap = 150;
+    for (let i = 0; i < 7; i++) this.gates.push({ z: 80 + i * this.gateGap });
+  }
+
+  get screen() {
+    const w = +(this.props.screenW ?? 146.6), h = +(this.props.screenH ?? 69.4);
+    return { x: G.plateCentre[0] - w / 2 + +(this.props.offsetX ?? 0),
+             y: G.plateCentre[1] - h / 2 + +(this.props.offsetY ?? 0), w, h };
+  }
+
+  // the corridor the route follows, as a lateral offset at distance z
+  corridor(z, t) { return Math.sin((z + t * 66) * .0042) * 30; }
+
+  // low city blocks passing underneath the flight path
+  mkBlock(z) {
+    return { x: (Math.random() - .5) * 900, z, w: 42 + Math.random() * 110, d: 40 + Math.random() * 96,
+             h: 6 + Math.random() * 46 };
+  }
+
+  mkBuilding(z) {
+    const side = Math.random() < .5 ? -1 : 1;
+    return { side, off: 84 + Math.random() * 150, z, w: 30 + Math.random() * 70, d: 28 + Math.random() * 56,
+             h: 110 + Math.random() * 230, floors: 4 + (Math.random() * 8 | 0) };
+  }
+
+  renderVals() {
+    return {
+      showPlate: this.props.showPlate !== false,
+      scanlines: this.props.scanlines !== false,
+      leftKeys: ['PWR','IGN','FLD','A/G','VTOL','TRIM','GYRO','ESPER','RCON','LAMP','SIREN','LINK','XPDR','PURGE','HOLD'],
+      rightKeys: ['NAV','MAP','TGT','SCAN','ZOOM','TRACK','IR','UV','RANGE','LOCK','DATA','VOX','REC','DUMP','EJECT'],
+      plate: this.plate(),
+      stageRef: this.stageRef, hudRef: this.hudRef, condRef: this.condRef, navRef: this.navRef,
+      padLRef: this.padLRef, padRRef: this.padRRef
+    };
+  }
+
+  plate() {
+    const h = React.createElement, s = this.screen;
+    const holes = WIN.map((w, i) => h('rect', { key: i, x: w[0], y: w[1], width: w[2], height: w[3], rx: w[4], fill: '#000' }));
+    const edges = WIN.map((w, i) => h('rect', { key: 'e' + i, x: w[0], y: w[1], width: w[2], height: w[3], rx: w[4], fill: 'none', stroke: 'rgba(255,255,255,.10)', strokeWidth: .22 }));
+    return h('svg', {
+      viewBox: s.x + ' ' + s.y + ' ' + s.w + ' ' + s.h, preserveAspectRatio: 'none',
+      style: { position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }
+    },
+      h('defs', null, h('mask', { id: 'spinner-plate-mask' },
+        h('rect', { x: s.x, y: s.y, width: s.w, height: s.h, fill: '#fff' }), holes)),
+      h('rect', { x: s.x, y: s.y, width: s.w, height: s.h, fill: '#0b0c0e', mask: 'url(#spinner-plate-mask)' }),
+      edges);
+  }
+
+  layout() {
+    const stage = this.stageRef.current; if (!stage) return;
+    const s = this.screen;
+    stage.style.aspectRatio = s.w + ' / ' + s.h;
+    stage.querySelectorAll('[data-win]').forEach(el => {
+      const r = REGION[el.getAttribute('data-win')]; if (!r) return;
+      el.style.left = ((r[0] - s.x) / s.w * 100).toFixed(4) + '%';
+      el.style.top = ((r[1] - s.y) / s.h * 100).toFixed(4) + '%';
+      el.style.width = (r[2] / s.w * 100).toFixed(4) + '%';
+      el.style.height = (r[3] / s.h * 100).toFixed(4) + '%';
+    });
+    [this.padLRef, this.padRRef].forEach(ref => {
+      const pad = ref.current; if (!pad) return;
+      for (let i = 0; i < pad.children.length; i++)
+        pad.children[i].style.gridArea = ((i / 3 | 0) * 2 + 1) + ' / ' + ((i % 3) * 2 + 1);
+    });
+  }
+
+  componentDidMount() {
+    if (this.condRef.current) this.condRef.current.textContent = CONDITIONS + CONDITIONS;
+    if (this.navRef.current) this.navRef.current.textContent = DIRECTIONS + DIRECTIONS;
+    this.layout();
+    this.loop = this.loop.bind(this);
+    this.raf = requestAnimationFrame(this.loop);
+  }
+  componentDidUpdate() { this.layout(); }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+
+  loop(now) {
+    this.drawHud((now - this.t0) / 1000, (this.props.speed ?? 1));
+    this.keys((now - this.t0) / 1000);
+    this.raf = requestAnimationFrame(this.loop);
+  }
+
+  keys(t) {
+    [this.padLRef, this.padRRef].forEach((ref, p) => {
+      const pad = ref.current; if (!pad) return;
+      const kids = pad.children;
+      for (let i = 0; i < kids.length; i++) {
+        const dot = kids[i].lastElementChild; if (!dot) continue;
+        const on = Math.sin(t * (.7 + (i % 4) * .23) + i * 1.37 + p * .6) > (i % 5 === 0 ? .1 : .82);
+        dot.style.opacity = on ? '1' : '.14';
+      }
+    });
+  }
+
+  drawHud(t, speed) {
+    const c = this.hudRef.current; if (!c) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const W = Math.max(2, Math.round(c.clientWidth * dpr)), H = Math.max(2, Math.round(c.clientHeight * dpr));
+    if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+    const g = c.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = '#02040a'; g.fillRect(0, 0, W, H);
+
+    const hz = H * .40, f = W * .30, camY = 78, mv = speed * 88 / 60;
+    const px = x => W / 2 + x, line = Math.max(.7, H * .0035);
+    g.lineJoin = 'round';
+
+    // ground plane, receding
+    g.strokeStyle = 'rgba(60,150,255,.46)'; g.lineWidth = line;
+    const off = (t * speed * 88) % 70;
+    for (let i = 1; i < 34; i++) {
+      const z = i * 70 - off + 60, y = hz + camY * (f / z);
+      if (y > H || z < 8) continue;
+      g.globalAlpha = Math.max(0, Math.min(.6, (700 - z) / 700));
+      g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+    }
+    g.globalAlpha = .42;
+    for (let i = -11; i <= 11; i++) {
+      const near = f / 60, far = f / 900;
+      g.beginPath();
+      g.moveTo(px(i * 70 * far), hz + camY * far);
+      g.lineTo(px(i * 70 * near), hz + camY * near);
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+
+    // ground-level city passing underneath
+    const proj = (wx, wy, wz) => { const k = f / wz; return [px(wx * k), hz - (wy - camY) * k]; };
+    this.blocks.forEach(b => { b.z -= mv; if (b.z < 55) Object.assign(b, this.mkBlock(880 + Math.random() * 120)); });
+    this.blocks.slice().sort((a, b) => b.z - a.z).forEach(b => {
+      const fog = Math.max(0, Math.min(1, (900 - b.z) / 700));
+      if (fog <= .02) return;
+      const x1 = b.x - b.w / 2, x2 = b.x + b.w / 2, z1 = b.z, z2 = b.z + b.d;
+      const top = [proj(x1, b.h, z1), proj(x2, b.h, z1), proj(x2, b.h, z2), proj(x1, b.h, z2)];
+      const bot = [proj(x1, 0, z1), proj(x2, 0, z1), proj(x2, 0, z2), proj(x1, 0, z2)];
+      g.fillStyle = 'rgba(2,7,18,.7)';
+      g.beginPath(); top.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(80,180,255,' + (.2 + fog * .55) + ')'; g.lineWidth = line;
+      g.beginPath();
+      top.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath();
+      for (let i = 0; i < 4; i++) { g.moveTo(top[i][0], top[i][1]); g.lineTo(bot[i][0], bot[i][1]); }
+      g.stroke();
+      g.strokeStyle = 'rgba(111,230,255,' + (.12 + fog * .3) + ')';
+      g.beginPath();
+      const mx = proj(b.x, b.h, z1), mx2 = proj(b.x, b.h, z2);
+      g.moveTo(mx[0], mx[1]); g.lineTo(mx2[0], mx2[1]);
+      g.stroke();
+    });
+
+    // wireframe buildings
+    this.buildings.forEach(b => { b.z -= mv; if (b.z < 45) Object.assign(b, this.mkBuilding(880 + Math.random() * 120)); });
+    this.buildings.slice().sort((a, b) => b.z - a.z).forEach(b => {
+      const fog = Math.max(0, Math.min(1, (900 - b.z) / 700));
+      if (fog <= .02) return;
+      const cxw = this.corridor(b.z, t) + b.side * b.off;
+      const zf = b.z, zb = b.z + b.d;
+      const kf = f / zf, kb = f / zb;
+      const fx1 = px((cxw - b.w / 2) * kf), fx2 = px((cxw + b.w / 2) * kf);
+      const bx1 = px((cxw - b.w / 2) * kb), bx2 = px((cxw + b.w / 2) * kb);
+      const fTop = hz - (b.h - camY) * kf, fBot = hz + camY * kf;
+      const bTop = hz - (b.h - camY) * kb, bBot = hz + camY * kb;
+      g.fillStyle = 'rgba(2,6,16,.82)';
+      g.beginPath(); g.moveTo(fx1, fTop); g.lineTo(fx2, fTop); g.lineTo(fx2, fBot); g.lineTo(fx1, fBot); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(70,170,255,' + (.25 + fog * .6) + ')'; g.lineWidth = line;
+      g.beginPath();
+      g.moveTo(bx1, bTop); g.lineTo(bx2, bTop); g.lineTo(bx2, bBot);
+      g.moveTo(bx1, bTop); g.lineTo(bx1, bBot);
+      g.moveTo(fx1, fTop); g.lineTo(bx1, bTop);
+      g.moveTo(fx2, fTop); g.lineTo(bx2, bTop);
+      g.moveTo(fx1, fBot); g.lineTo(bx1, bBot);
+      g.moveTo(fx2, fBot); g.lineTo(bx2, bBot);
+      g.moveTo(fx1, fTop); g.lineTo(fx2, fTop); g.lineTo(fx2, fBot); g.lineTo(fx1, fBot); g.closePath();
+      g.stroke();
+      g.strokeStyle = 'rgba(111,230,255,' + (.14 + fog * .4) + ')';
+      for (let fl = 1; fl < b.floors; fl++) {
+        const y = fTop + (fBot - fTop) * (fl / b.floors);
+        g.beginPath(); g.moveTo(fx1, y); g.lineTo(fx2, y); g.stroke();
+      }
+    });
+
+    // guidance gates — nearest vanishes as it is flown through
+    const gates = this.gates;
+    gates.forEach(gt => { gt.z -= mv; if (gt.z < 26) gt.z += this.gateGap * gates.length; });
+    gates.slice().sort((a, b) => b.z - a.z).forEach(gt => {
+      const k = f / gt.z;
+      const gw = 148 * k, gh = gw * (GATE_BOX.h / GATE_BOX.w);
+      if (gw < 5) return;
+      const cxw = this.corridor(gt.z, t);
+      const x = px(cxw * k), y = hz + 2 * k;
+      const near = Math.max(0, Math.min(1, (gt.z - 26) / 26));
+      const far = Math.max(0, Math.min(1, (760 - gt.z) / 300));
+      g.save();
+      g.globalAlpha = Math.min(near, far) * .95;
+      g.translate(x, y);
+      g.scale(gw / GATE_BOX.w, gh / GATE_BOX.h);
+      g.translate(-GATE_BOX.cx, -GATE_BOX.cy);
+      g.shadowColor = 'rgba(255,0,216,.85)';
+      g.shadowBlur = 26 * (GATE_BOX.w / gw);
+      g.fillStyle = '#ff00d8';
+      if (this.gatePath) g.fill(this.gatePath, 'evenodd');
+      g.restore();
+    });
+
+    // bezels between the six screens
+    g.fillStyle = '#000';
+    GUTTER.v.forEach(v => g.fillRect(v[0] * W, 0, (v[1] - v[0]) * W, H));
+    GUTTER.h.forEach(h2 => g.fillRect(0, h2[0] * H, W, (h2[1] - h2[0]) * H));
+    g.strokeStyle = 'rgba(70,170,255,.18)'; g.lineWidth = Math.max(.6, H * .002);
+    GUTTER.v.forEach(v => { [v[0], v[1]].forEach(p => { g.beginPath(); g.moveTo(p * W, 0); g.lineTo(p * W, H); g.stroke(); }); });
+    GUTTER.h.forEach(h2 => { [h2[0], h2[1]].forEach(p => { g.beginPath(); g.moveTo(0, p * H); g.lineTo(W, p * H); g.stroke(); }); });
+  }
+}
+
+</script>
+</body>
+</html>

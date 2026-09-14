@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet"><style>html,body{margin:0;padding:0;background:#050607;overscroll-behavior:none}a{color:#ffb000}a:hover{color:#ffd166}@keyframes flick{0%,92%{opacity:1}94%{opacity:.45}96%{opacity:1}98%{opacity:.7}100%{opacity:1}}@keyframes crawl{from{transform:translateX(0)}to{transform:translateX(-50%)}}</style></helmet>
+<div ref="{{stageRef}}" style="--acc:{{acc}};--acc2:{{acc2}};width:100%;aspect-ratio:146.6 / 69.4;max-height:100vh;margin:0 auto;position:relative;background:#000;overflow:hidden;container-type:size;font-family:'Share Tech Mono',ui-monospace,monospace;color:var(--acc,#ffb000);user-select:none">
+
+  <div data-win="ts-l" style="position:absolute;left:8.5%;top:4.6%;width:37.4%;height:18.3%;background:radial-gradient(120% 160% at 10% 0%,#14100a 0%,#07070a 70%);display:flex;flex-direction:column;justify-content:center;gap:1.4cqh;padding:0 1.6cqw;box-sizing:border-box;overflow:hidden">
+    <div style="display:flex;align-items:baseline;gap:1.2cqw;font-family:'Barlow Condensed',sans-serif;letter-spacing:.1em;white-space:nowrap;line-height:1">
+      <span style="font-size:5.6cqh;color:var(--acc,#ffb000);text-shadow:0 0 1.2cqh rgba(255,176,0,.55)">LAPD</span>
+      <span style="font-size:3.8cqh;color:var(--acc2,#3fe0e8)">SPINNER</span>
+      <span style="font-size:3.8cqh;color:rgba(255,176,0,.6)">2187</span>
+      <span style="margin-left:auto;font-size:3.4cqh;color:var(--acc2,#3fe0e8);animation:flick 4s infinite steps(1)">AIRBORNE</span>
+    </div>
+    <div style="height:.28cqh;background:linear-gradient(90deg,rgba(255,176,0,.75),rgba(255,176,0,0))"></div>
+    <div style="overflow:hidden;white-space:nowrap;font-size:3.4cqh;line-height:1.3;letter-spacing:.06em;color:rgba(255,176,0,.82)">
+      <span ref="{{telemetryRef}}" style="display:inline-block;animation:crawl 26s linear infinite"></span>
+    </div>
+  </div>
+
+  <div data-win="ts-r" style="position:absolute;left:53.7%;top:4.6%;width:37.4%;height:18.3%;background:radial-gradient(120% 160% at 90% 0%,#0a1214 0%,#07070a 70%);display:grid;grid-template-columns:1fr 1fr 1fr;box-sizing:border-box;padding:.8cqh 1cqw;gap:1cqw;overflow:hidden">
+    <div style="display:flex;flex-direction:column;justify-content:center;border-right:1px solid rgba(255,176,0,.18)">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:3.2cqh;letter-spacing:.18em;white-space:nowrap;color:rgba(63,224,232,.75)">ALT FT</div>
+      <div ref="{{altRef}}" style="font-size:8.4cqh;line-height:1;color:var(--acc,#ffb000);text-shadow:0 0 1.4cqh rgba(255,176,0,.5)">0000</div>
+    </div>
+    <div style="display:flex;flex-direction:column;justify-content:center;border-right:1px solid rgba(255,176,0,.18)">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:3.2cqh;letter-spacing:.18em;white-space:nowrap;color:rgba(63,224,232,.75)">SPD KTS</div>
+      <div ref="{{spdRef}}" style="font-size:8.4cqh;line-height:1;color:var(--acc,#ffb000);text-shadow:0 0 1.4cqh rgba(255,176,0,.5)">000</div>
+    </div>
+    <div style="display:flex;flex-direction:column;justify-content:center">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:3.2cqh;letter-spacing:.18em;white-space:nowrap;color:rgba(63,224,232,.75)">HDG</div>
+      <div ref="{{hdgRef}}" style="font-size:8.4cqh;line-height:1;color:var(--acc2,#3fe0e8);text-shadow:0 0 1.4cqh rgba(63,224,232,.45)">000</div>
+    </div>
+  </div>
+
+  <div data-win="p0" style="position:absolute;left:21.5%;top:31%;width:17.9%;height:30.5%;background:#05070a;overflow:hidden">
+    <canvas ref="{{radarRef}}" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+  </div>
+
+  <div data-win="p1" style="position:absolute;left:40.8%;top:31%;width:17.9%;height:30.5%;background:#03040a;overflow:hidden">
+    <canvas ref="{{fwdRef}}" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+  </div>
+
+  <div data-win="p2" style="position:absolute;left:60.1%;top:31%;width:17.9%;height:30.5%;background:#05070a;overflow:hidden">
+    <canvas ref="{{attRef}}" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+  </div>
+
+  <div data-win="p3" style="position:absolute;left:21.5%;top:64.4%;width:17.9%;height:30.5%;background:#05070a;overflow:hidden">
+    <canvas ref="{{thrRef}}" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+  </div>
+
+  <div data-win="p4" style="position:absolute;left:40.8%;top:64.4%;width:17.9%;height:30.5%;background:#05070a;overflow:hidden">
+    <canvas ref="{{navRef}}" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+  </div>
+
+  <div data-win="p5" style="position:absolute;left:60.1%;top:64.4%;width:17.9%;height:30.5%;background:#070609;overflow:hidden;padding:1.6cqh .9cqw;box-sizing:border-box;display:flex;flex-direction:column;gap:.8cqh">
+    <div style="display:flex;justify-content:space-between;gap:.6cqw;white-space:nowrap;line-height:1;font-family:'Barlow Condensed',sans-serif;font-size:3cqh;letter-spacing:.14em;color:rgba(255,176,0,.9)"><span>DISPATCH</span><span ref="{{caseRef}}" style="color:var(--acc2,#3fe0e8)"></span></div>
+    <div ref="{{dispRef}}" style="flex:1;min-height:0;font-size:2.5cqh;line-height:1.25;color:rgba(255,176,0,.86);white-space:pre-wrap;overflow:hidden"></div>
+    <div style="height:1.6cqh;background:rgba(255,176,0,.12);overflow:hidden"><div ref="{{barRef}}" style="height:100%;width:10%;background:linear-gradient(90deg,var(--acc2,#3fe0e8),var(--acc,#ffb000))"></div></div>
+  </div>
+
+  <div data-win="pad-l" ref="{{padLRef}}" style="position:absolute;left:2.2%;top:31%;width:17.8%;height:63.7%;display:grid;grid-template-columns:773fr 144fr 773fr 144fr 773fr;grid-template-rows:773fr 126fr 773fr 145fr 773fr 144fr 773fr 144fr 773fr">
+    <sc-for list="{{leftKeys}}" as="k" hint-placeholder-count="15">
+      <div style="position:relative;background:linear-gradient(180deg,#191510,#0b0a09);border:1px solid rgba(255,176,0,.3);box-shadow:inset 0 0 1.2cqh rgba(255,176,0,.08);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:3.2cqh;letter-spacing:.06em;color:rgba(255,176,0,.9);text-align:center;line-height:1">{{ k }}</span>
+        <i style="position:absolute;left:8%;top:8%;width:12%;aspect-ratio:1;border-radius:50%;background:var(--acc2,#3fe0e8);opacity:.15"></i>
+      </div>
+    </sc-for>
+  </div>
+
+  <div data-win="pad-r" ref="{{padRRef}}" style="position:absolute;left:79.9%;top:31%;width:17.8%;height:63.7%;display:grid;grid-template-columns:773fr 144fr 773fr 144fr 773fr;grid-template-rows:773fr 126fr 773fr 145fr 773fr 144fr 773fr 144fr 773fr">
+    <sc-for list="{{rightKeys}}" as="k" hint-placeholder-count="15">
+      <div style="position:relative;background:linear-gradient(180deg,#0e1518,#08090b);border:1px solid rgba(63,224,232,.28);box-shadow:inset 0 0 1.2cqh rgba(63,224,232,.08);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:3.2cqh;letter-spacing:.06em;color:rgba(63,224,232,.92);text-align:center;line-height:1">{{ k }}</span>
+        <i style="position:absolute;left:8%;top:8%;width:12%;aspect-ratio:1;border-radius:50%;background:var(--acc,#ffb000);opacity:.15"></i>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{scanlines}}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(180deg,rgba(0,0,0,0) 0,rgba(0,0,0,0) .28cqh,rgba(0,0,0,.34) .28cqh,rgba(0,0,0,.34) .56cqh);mix-blend-mode:multiply"></div>
+  </sc-if>
+
+  <sc-if value="{{showPlate}}" hint-placeholder-val="{{ true }}">{{ plate }}</sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1216,&quot;height&quot;:576},&quot;showPlate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Overlay&quot;},&quot;scanlines&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Overlay&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Amber&quot;,&quot;Cyan&quot;,&quot;Phosphor&quot;],&quot;default&quot;:&quot;Amber&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Look&quot;},&quot;rain&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:1,&quot;step&quot;:0.05,&quot;default&quot;:0.6,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Flight&quot;},&quot;speed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.2,&quot;max&quot;:2,&quot;step&quot;:0.05,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Flight&quot;},&quot;screenW&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:146.6,&quot;min&quot;:120,&quot;max&quot;:170,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;mm&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Calibration&quot;},&quot;screenH&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:69.4,&quot;min&quot;:55,&quot;max&quot;:85,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;mm&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Calibration&quot;},&quot;offsetX&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0,&quot;min&quot;:-8,&quot;max&quot;:8,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;mm&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Calibration&quot;},&quot;offsetY&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0,&quot;min&quot;:-8,&quot;max&quot;:8,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;mm&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Calibration&quot;}}">
+const R = () => React.createRef();
+const PAL = { Amber: ['#ffb000', '#3fe0e8'], Cyan: ['#56e6f0', '#ff9d2e'], Phosphor: ['#7bf06a', '#ffb000'] };
+
+// --- Geometry read directly from "Spinner Dashboard.svg" (mm, mask coordinate space).
+// viewBox: x -87..81, y 80..165. Plate outer -86..80 / 81..164, centre (-3, 122.5).
+const G = {
+  plateCentre: [-3, 122.5],
+  strips: [[-63.33, 91.21, 54.87, 12.72], [2.45, 91.21, 54.87, 12.72]],
+  panel: [26.18, 21.19],
+  panelX: [-44.16, -16.09, 11.98],
+  panelY: [109.55, 132.6],
+  key: 7.73,
+  keyCols: [[-72.5, -63.33, -54.16], [40.43, 49.6, 58.77]],
+  keyRows: [109.55, 118.54, 127.72, 136.89, 146.06]
+};
+// every cutout, as [x, y, w, h, rx]
+const WIN = (() => {
+  const w = G.strips.map(s => [s[0], s[1], s[2], s[3], 1.2]);
+  G.panelX.forEach(x => G.panelY.forEach(y => w.push([x, y, G.panel[0], G.panel[1], 1.3])));
+  G.keyCols.forEach(cols => cols.forEach(x => G.keyRows.forEach(y => w.push([x, y, G.key, G.key, 1.1]))));
+  return w;
+})();
+// named regions the DOM maps onto
+const REGION = (() => {
+  const r = { 'ts-l': G.strips[0], 'ts-r': G.strips[1] };
+  let i = 0;
+  G.panelY.forEach(y => G.panelX.forEach(x => { r['p' + i++] = [x, y, G.panel[0], G.panel[1]]; }));
+  const padH = G.keyRows[4] + G.key - G.keyRows[0];
+  G.keyCols.forEach((cols, n) => {
+    r['pad-' + (n ? 'r' : 'l')] = [cols[0], G.keyRows[0], cols[2] + G.key - cols[0], padH];
+  });
+  return r;
+})();
+
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    ['stageRef','radarRef','fwdRef','attRef','thrRef','navRef','telemetryRef','altRef','spdRef','hdgRef',
+     'padLRef','padRRef','dispRef','barRef','caseRef'].forEach(k => this[k] = R());
+    this.t0 = performance.now();
+    this.buildings = [];
+    this.blips = [];
+    this.rainSeed = [];
+    for (let i = 0; i < 160; i++) this.rainSeed.push([Math.random(), Math.random(), .4 + Math.random()]);
+    for (let i = 0; i < 26; i++) this.buildings.push(this.mkBuilding(20 + Math.random() * 300));
+    for (let i = 0; i < 9; i++) this.blips.push({ a: Math.random() * 6.283, r: .25 + Math.random() * .7, s: (Math.random() - .5) * .0004 });
+  }
+
+  get acc() { return (PAL[this.props.accent] || PAL.Amber)[0]; }
+  get acc2() { return (PAL[this.props.accent] || PAL.Amber)[1]; }
+
+  // the phone's active display area, expressed in the mask's mm coordinates
+  get screen() {
+    const w = +(this.props.screenW ?? 146.6), h = +(this.props.screenH ?? 69.4);
+    const x = G.plateCentre[0] - w / 2 + +(this.props.offsetX ?? 0);
+    const y = G.plateCentre[1] - h / 2 + +(this.props.offsetY ?? 0);
+    return { x, y, w, h };
+  }
+
+  mkBuilding(z) {
+    const side = Math.random() < .5 ? -1 : 1;
+    return { x: side * (14 + Math.random() * 70), z, w: 10 + Math.random() * 26, h: 26 + Math.random() * 120, seed: Math.random() };
+  }
+
+  renderVals() {
+    return {
+      acc: this.acc, acc2: this.acc2,
+      showPlate: this.props.showPlate !== false,
+      scanlines: this.props.scanlines !== false,
+      leftKeys: ['PWR','IGN','FLD','A/G','VTOL','TRIM','GYRO','ESPER','RCON','LAMP','SIREN','LINK','XPDR','PURGE','HOLD'],
+      rightKeys: ['NAV','MAP','TGT','SCAN','ZOOM','TRACK','IR','UV','RANGE','LOCK','DATA','VOX','REC','DUMP','EJECT'],
+      plate: this.plate(),
+      stageRef: this.stageRef,
+      radarRef: this.radarRef, fwdRef: this.fwdRef, attRef: this.attRef, thrRef: this.thrRef, navRef: this.navRef,
+      telemetryRef: this.telemetryRef, altRef: this.altRef, spdRef: this.spdRef, hdgRef: this.hdgRef,
+      padLRef: this.padLRef, padRRef: this.padRRef, dispRef: this.dispRef, barRef: this.barRef, caseRef: this.caseRef
+    };
+  }
+
+  // plate overlay, drawn in mask mm and clipped to the screen rect by the viewBox
+  plate() {
+    const h = React.createElement, s = this.screen;
+    const holes = WIN.map((w, i) => h('rect', { key: i, x: w[0], y: w[1], width: w[2], height: w[3], rx: w[4], fill: '#000' }));
+    const edges = WIN.map((w, i) => h('rect', { key: 'e' + i, x: w[0], y: w[1], width: w[2], height: w[3], rx: w[4], fill: 'none', stroke: 'rgba(255,255,255,.10)', strokeWidth: .22 }));
+    return h('svg', {
+      viewBox: s.x + ' ' + s.y + ' ' + s.w + ' ' + s.h, preserveAspectRatio: 'none',
+      style: { position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }
+    },
+      h('defs', null, h('mask', { id: 'spinner-plate-mask' },
+        h('rect', { x: s.x, y: s.y, width: s.w, height: s.h, fill: '#fff' }), holes)),
+      h('rect', { x: s.x, y: s.y, width: s.w, height: s.h, fill: '#0b0c0e', mask: 'url(#spinner-plate-mask)' }),
+      edges);
+  }
+
+  // place every window from its mm rect — guarantees the DOM matches the mask exactly
+  layout() {
+    const stage = this.stageRef.current; if (!stage) return;
+    const s = this.screen;
+    stage.style.aspectRatio = s.w + ' / ' + s.h;
+    stage.querySelectorAll('[data-win]').forEach(el => {
+      const r = REGION[el.getAttribute('data-win')]; if (!r) return;
+      el.style.left = ((r[0] - s.x) / s.w * 100).toFixed(4) + '%';
+      el.style.top = ((r[1] - s.y) / s.h * 100).toFixed(4) + '%';
+      el.style.width = (r[2] / s.w * 100).toFixed(4) + '%';
+      el.style.height = (r[3] / s.h * 100).toFixed(4) + '%';
+    });
+    [this.padLRef, this.padRRef].forEach(ref => {
+      const pad = ref.current; if (!pad) return;
+      for (let i = 0; i < pad.children.length; i++) {
+        pad.children[i].style.gridArea = ((i / 3 | 0) * 2 + 1) + ' / ' + ((i % 3) * 2 + 1);
+      }
+    });
+  }
+
+  componentDidMount() {
+    const line = 'SECTOR 4 CLEARED · TRAFFIC CORRIDOR 7 ACTIVE · ACID RAIN ADVISORY · TYRELL AIRSPACE RESTRICTED · ';
+    if (this.telemetryRef.current) this.telemetryRef.current.textContent = line + line;
+    if (this.dispRef.current) this.dispRef.current.textContent = 'NEXUS-6 · N6MAA10816\nSEEN: SECTOR 4 ARCADE\nPRIORITY: RETIRE';
+    if (this.caseRef.current) this.caseRef.current.textContent = 'CASE 1019';
+    this.layout();
+    this.loop = this.loop.bind(this);
+    this.raf = requestAnimationFrame(this.loop);
+  }
+  componentDidUpdate() { this.layout(); }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); }
+
+  ctx(ref) {
+    const c = ref.current; if (!c) return null;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(2, Math.round(c.clientWidth * dpr)), hh = Math.max(2, Math.round(c.clientHeight * dpr));
+    if (c.width !== w || c.height !== hh) { c.width = w; c.height = hh; }
+    const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0);
+    return { g, W: w, H: hh };
+  }
+
+  loop(now) {
+    const t = (now - this.t0) / 1000, speed = (this.props.speed ?? 1);
+    this.drawFwd(t, speed); this.drawRadar(t); this.drawAtt(t); this.drawThr(t); this.drawNav(t, speed);
+    this.readouts(t, speed); this.keys(t);
+    this.raf = requestAnimationFrame(this.loop);
+  }
+
+  readouts(t, speed) {
+    const alt = Math.round(1480 + Math.sin(t * .31) * 120 + Math.sin(t * 1.7) * 14);
+    const spd = Math.round(186 * speed + Math.sin(t * .8) * 6);
+    const hdg = Math.round((214 + Math.sin(t * .17) * 12 + 360) % 360);
+    if (this.altRef.current) this.altRef.current.textContent = String(alt).padStart(4, '0');
+    if (this.spdRef.current) this.spdRef.current.textContent = String(spd).padStart(3, '0');
+    if (this.hdgRef.current) this.hdgRef.current.textContent = String(hdg).padStart(3, '0');
+    if (this.barRef.current) this.barRef.current.style.width = (12 + (t * 9) % 88).toFixed(1) + '%';
+  }
+
+  keys(t) {
+    [this.padLRef, this.padRRef].forEach((ref, p) => {
+      const pad = ref.current; if (!pad) return;
+      const kids = pad.children;
+      for (let i = 0; i < kids.length; i++) {
+        const dot = kids[i].lastElementChild; if (!dot) continue;
+        const on = Math.sin(t * (.7 + (i % 4) * .23) + i * 1.37 + p * .6) > (i % 5 === 0 ? .1 : .82);
+        dot.style.opacity = on ? '1' : '.14';
+        kids[i].style.boxShadow = on ? 'inset 0 0 2.4cqh rgba(255,176,0,.22)' : 'inset 0 0 1.2cqh rgba(255,176,0,.06)';
+      }
+    });
+  }
+
+  label(g, H, txt, W) {
+    g.fillStyle = 'rgba(255,176,0,.9)';
+    g.font = (H * .1) + 'px "Barlow Condensed", sans-serif';
+    g.textAlign = 'left'; g.fillText(txt, W * .05, H * .12);
+  }
+
+  drawFwd(t, speed) {
+    const c = this.ctx(this.fwdRef); if (!c) return;
+    const { g, W, H } = c, hz = H * .48, f = W * .55;
+    const sky = g.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#06070c'); sky.addColorStop(.46, '#140d10'); sky.addColorStop(.52, '#2a1408'); sky.addColorStop(1, '#05070a');
+    g.fillStyle = sky; g.fillRect(0, 0, W, H);
+
+    const camY = 12, mv = speed * 46 / 60;
+    this.buildings.forEach(b => { b.z -= mv; if (b.z < 12) Object.assign(b, this.mkBuilding(300 + Math.random() * 60)); });
+    this.buildings.slice().sort((a, b) => b.z - a.z).forEach(b => {
+      const k = f / b.z, sx = W / 2 + b.x * k, sw = Math.max(1, b.w * k);
+      const yTop = hz - (b.h - camY) * k, yBot = hz + camY * k;
+      const fog = Math.max(0, Math.min(1, (300 - b.z) / 240));
+      g.fillStyle = 'rgba(4,5,9,' + (.55 + fog * .45) + ')';
+      g.fillRect(sx - sw / 2, yTop, sw, yBot - yTop);
+      g.strokeStyle = 'rgba(255,176,0,' + (.10 + fog * .22) + ')'; g.lineWidth = Math.max(.5, k * .35);
+      g.strokeRect(sx - sw / 2, yTop, sw, yBot - yTop);
+      const rows = Math.floor((yBot - yTop) / Math.max(4, k * 9));
+      for (let r = 0; r < rows; r++) for (let cc = 0; cc < 3; cc++) {
+        if (((r * 3 + cc + b.seed * 97) | 0) % 4 === 0) continue;
+        const wx = sx - sw / 2 + sw * (.18 + cc * .3), wy = yTop + (r + .4) * ((yBot - yTop) / rows);
+        g.fillStyle = (r + cc) % 5 === 0 ? 'rgba(63,224,232,' + (.5 * fog) + ')' : 'rgba(255,176,0,' + (.42 * fog) + ')';
+        g.fillRect(wx, wy, Math.max(.8, sw * .14), Math.max(.8, k * 2.4));
+      }
+    });
+
+    g.strokeStyle = 'rgba(255,176,0,.22)'; g.lineWidth = Math.max(.6, H * .003);
+    const off = (t * speed * 46) % 24;
+    for (let i = 1; i < 12; i++) {
+      const z = i * 24 - off + 14, y = hz + camY * (f / z);
+      if (y > H) continue;
+      g.globalAlpha = Math.max(0, Math.min(.5, (300 - z) / 300));
+      g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+    }
+    g.globalAlpha = 1; g.strokeStyle = 'rgba(255,176,0,.10)';
+    for (let i = -3; i <= 3; i++) {
+      g.beginPath(); g.moveTo(W / 2 + i * 12 * (f / 300), hz + camY * (f / 300));
+      g.lineTo(W / 2 + i * 12 * (f / 14), hz + camY * (f / 14)); g.stroke();
+    }
+
+    const dens = (this.props.rain ?? .6), n = Math.floor(this.rainSeed.length * dens);
+    g.strokeStyle = 'rgba(190,215,235,.5)'; g.lineWidth = Math.max(.5, H * .0035);
+    for (let i = 0; i < n; i++) {
+      const s = this.rainSeed[i];
+      const x = ((s[0] + t * .02 * s[2]) % 1) * W, y = ((s[1] + t * (.5 + s[2] * .8)) % 1) * H;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x - H * .012, y + H * .075 * s[2]); g.stroke();
+    }
+
+    g.strokeStyle = this.acc2; g.lineWidth = Math.max(.7, H * .004); g.globalAlpha = .8;
+    const r = H * .08;
+    g.beginPath(); g.arc(W / 2, hz, r, 0, 6.283); g.stroke();
+    g.beginPath(); g.moveTo(W / 2 - r * 1.8, hz); g.lineTo(W / 2 - r * .5, hz);
+    g.moveTo(W / 2 + r * .5, hz); g.lineTo(W / 2 + r * 1.8, hz); g.stroke();
+    g.globalAlpha = 1;
+    this.label(g, H, 'FWD OPTIC', W);
+    g.fillStyle = 'rgba(63,224,232,.8)'; g.textAlign = 'right';
+    g.fillText('SEC 4-' + (10 + Math.floor(t * .6) % 40), W * .95, H * .95);
+  }
+
+  drawRadar(t) {
+    const c = this.ctx(this.radarRef); if (!c) return;
+    const { g, W, H } = c, cx = W / 2, cy = H * .58, rad = Math.min(W, H) * .4;
+    g.fillStyle = '#05070a'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = 'rgba(63,224,232,.28)'; g.lineWidth = Math.max(.6, H * .004);
+    for (let i = 1; i <= 3; i++) { g.beginPath(); g.arc(cx, cy, rad * i / 3, 0, 6.283); g.stroke(); }
+    g.beginPath(); g.moveTo(cx - rad, cy); g.lineTo(cx + rad, cy); g.moveTo(cx, cy - rad); g.lineTo(cx, cy + rad); g.stroke();
+    const a = (t * 1.1) % 6.283;
+    g.save(); g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, rad, a - .7, a); g.closePath();
+    g.fillStyle = 'rgba(63,224,232,.14)'; g.fill(); g.restore();
+    g.strokeStyle = this.acc2; g.lineWidth = Math.max(.8, H * .005);
+    g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad); g.stroke();
+    this.blips.forEach(b => {
+      b.a += b.s;
+      const bx = cx + Math.cos(b.a) * rad * b.r, by = cy + Math.sin(b.a) * rad * b.r;
+      const fade = Math.max(.12, 1 - ((a - b.a + 6.283) % 6.283) / 2.2);
+      g.fillStyle = 'rgba(255,176,0,' + fade + ')';
+      g.beginPath(); g.arc(bx, by, Math.max(1.2, H * .012), 0, 6.283); g.fill();
+    });
+    g.fillStyle = 'rgba(63,224,232,.85)';
+    g.font = (H * .1) + 'px "Barlow Condensed", sans-serif'; g.textAlign = 'left';
+    g.fillText('PROX SCAN', W * .05, H * .12);
+  }
+
+  drawAtt(t) {
+    const c = this.ctx(this.attRef); if (!c) return;
+    const { g, W, H } = c, cx = W / 2, cy = H * .58, rad = Math.min(W, H) * .38;
+    g.fillStyle = '#05070a'; g.fillRect(0, 0, W, H);
+    const roll = Math.sin(t * .43) * .26, pitch = Math.sin(t * .67) * rad * .18;
+    g.save();
+    g.beginPath(); g.arc(cx, cy, rad, 0, 6.283); g.clip();
+    g.translate(cx, cy); g.rotate(roll); g.translate(0, pitch);
+    g.fillStyle = '#0a0c12'; g.fillRect(-rad * 2, -rad * 2, rad * 4, rad * 2);
+    g.fillStyle = '#1a1006'; g.fillRect(-rad * 2, 0, rad * 4, rad * 2);
+    g.strokeStyle = this.acc; g.lineWidth = Math.max(.8, H * .005);
+    g.beginPath(); g.moveTo(-rad * 2, 0); g.lineTo(rad * 2, 0); g.stroke();
+    g.strokeStyle = 'rgba(255,176,0,.45)'; g.lineWidth = Math.max(.6, H * .003);
+    for (let i = -3; i <= 3; i++) {
+      if (!i) continue;
+      const y = i * rad * .28, wq = i % 2 ? rad * .22 : rad * .42;
+      g.beginPath(); g.moveTo(-wq, y); g.lineTo(wq, y); g.stroke();
+    }
+    g.restore();
+    g.strokeStyle = 'rgba(63,224,232,.55)'; g.lineWidth = Math.max(.7, H * .004);
+    g.beginPath(); g.arc(cx, cy, rad, 0, 6.283); g.stroke();
+    g.strokeStyle = this.acc2; g.lineWidth = Math.max(1, H * .006);
+    g.beginPath(); g.moveTo(cx - rad * .42, cy); g.lineTo(cx - rad * .14, cy);
+    g.moveTo(cx + rad * .14, cy); g.lineTo(cx + rad * .42, cy);
+    g.moveTo(cx, cy - rad * .06); g.lineTo(cx, cy + rad * .06); g.stroke();
+    g.fillStyle = 'rgba(63,224,232,.85)';
+    g.font = (H * .1) + 'px "Barlow Condensed", sans-serif'; g.textAlign = 'left';
+    g.fillText('ATTITUDE', W * .05, H * .12);
+  }
+
+  drawThr(t) {
+    const c = this.ctx(this.thrRef); if (!c) return;
+    const { g, W, H } = c;
+    g.fillStyle = '#05070a'; g.fillRect(0, 0, W, H);
+    this.label(g, H, 'LIFT / THRUST', W);
+    const labels = ['L1', 'L2', 'R1', 'R2'], top = H * .32, bh = H * .52, bw = W * .11;
+    labels.forEach((L, i) => {
+      const x = W * .12 + i * W * .2;
+      g.strokeStyle = 'rgba(255,176,0,.3)'; g.lineWidth = Math.max(.6, H * .004);
+      g.strokeRect(x, top, bw, bh);
+      const v = .5 + .42 * Math.sin(t * (1.1 + i * .27) + i), segs = 12, sh = bh / segs;
+      for (let s = 0; s < segs; s++) {
+        g.fillStyle = s / segs < v ? (s > segs * .8 ? '#ff5c2e' : this.acc) : 'rgba(255,176,0,.10)';
+        g.fillRect(x + bw * .12, top + bh - (s + 1) * sh + sh * .18, bw * .76, sh * .62);
+      }
+      g.font = (H * .1) + 'px "Barlow Condensed", sans-serif'; g.textAlign = 'center';
+      g.fillStyle = 'rgba(63,224,232,.85)'; g.fillText(L, x + bw / 2, H * .28);
+      g.fillStyle = 'rgba(255,176,0,.8)'; g.fillText(Math.round(v * 100) + '', x + bw / 2, H * .96);
+    });
+  }
+
+  drawNav(t, speed) {
+    const c = this.ctx(this.navRef); if (!c) return;
+    const { g, W, H } = c;
+    g.fillStyle = '#05070a'; g.fillRect(0, 0, W, H);
+    const pitch = H * .16, off = (t * speed * 18) % pitch;
+    g.strokeStyle = 'rgba(255,176,0,.16)'; g.lineWidth = Math.max(.5, H * .003);
+    for (let y = -pitch; y < H + pitch; y += pitch) { g.beginPath(); g.moveTo(0, y + off); g.lineTo(W, y + off); g.stroke(); }
+    for (let x = 0; x < W + pitch; x += pitch) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+    g.strokeStyle = this.acc2; g.lineWidth = Math.max(.9, H * .006); g.globalAlpha = .9;
+    g.beginPath();
+    for (let i = 0; i <= 20; i++) {
+      const y = H - i * (H / 20), x = W / 2 + Math.sin((i * .5) + t * .5) * W * .18;
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    }
+    g.stroke(); g.globalAlpha = 1;
+    g.fillStyle = 'rgba(255,176,0,.9)';
+    [[.22, .3], [.78, .55], [.36, .78]].forEach((p, i) => {
+      const s = Math.max(1.4, H * .016) * (1 + .3 * Math.sin(t * 2 + i));
+      g.beginPath(); g.arc(W * p[0], H * p[1], s, 0, 6.283); g.fill();
+    });
+    g.fillStyle = this.acc2;
+    g.beginPath(); g.moveTo(W / 2, H * .74); g.lineTo(W / 2 - H * .05, H * .86); g.lineTo(W / 2 + H * .05, H * .86); g.closePath(); g.fill();
+    this.label(g, H, 'NAV GRID', W);
+    g.fillStyle = 'rgba(63,224,232,.85)'; g.textAlign = 'right';
+    g.fillText('WP ' + (1 + Math.floor(t / 7) % 6) + '/6', W * .95, H * .12);
+  }
+}
+
+</script>
+</body>
+</html>
