@@ -97,8 +97,10 @@ connected). Right: upcoming turns and distance to the Broadway / 5th destination
 on the saved downtown route. Manual travel off the route shows a return-to-route notice.
 
 The magenta flight gate uses `Spinner Dashboard hud.svg` unchanged in shape. It
-marks the route position 7.5 seconds ahead at the current speed and altitude;
-manual flight projects current heading. It is hidden in Drive, Map, and at zero speed.
+is placed at the route position 10 seconds ahead at the current speed and altitude,
+then stays fixed in world space until the spinner passes it. Meter-sized rendering
+lets it grow with perspective. Manual flight projects the current heading when
+placing a gate. It is hidden in Drive and Map.
 
 Small displays show names and animated dot patterns. Left: FLY, DRIVE, AUTO,
 LEFT, HOLD, RIGHT, ALT+, ALT-, SPD+. Right: SPD-, AMBER, SAT, ROAD, BLDG,
