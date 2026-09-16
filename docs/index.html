@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="/SpinnerCockpit/cesium/Widgets/widgets.css">
+    <script src="/SpinnerCockpit/cesium/Cesium.js"></script>
+
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <title>Spinner · Los Angeles</title>
+    <link rel="icon" href="data:," />
+    <script type="module" crossorigin src="/SpinnerCockpit/assets/app-FmwgTs2Z.js"></script>
+    <link rel="stylesheet" crossorigin href="/SpinnerCockpit/assets/app-DngqMg7Y.css">
+  </head>
+  <body>
+    <main id="cockpit" aria-label="Spinner cockpit, Los Angeles">
+      <section
+        id="conditions"
+        class="strip"
+        aria-label="Environment and traffic notices"
+      >
+        <span id="telemetry">LOS ANGELES - CONNECTING</span>
+      </section>
+      <section
+        id="navigation"
+        class="strip"
+        aria-label="Turn by turn instructions"
+      >
+        <span id="nav-detail">CALCULATING ROUTE</span>
+      </section>
+      <div
+        id="viewport"
+        aria-label="Continuous world view behind six screen openings"
+      >
+        <div id="globe"></div>
+
+        <div id="scene-label">LOS ANGELES / SECTOR 05</div>
+        <div id="view-status" role="status">INITIALIZING WORLD…</div>
+      </div>
+      <nav id="keys-left" aria-label="Vehicle controls"></nav>
+      <nav id="keys-right" aria-label="Display controls"></nav>
+      <div
+        id="manual-0"
+        class="manual-blank"
+        aria-label="Reserved left manual control"
+      ></div>
+      <div
+        id="manual-1"
+        class="manual-blank"
+        aria-label="Reserved right manual control"
+      ></div>
+      <svg id="plate" aria-hidden="true" preserveAspectRatio="none"></svg>
+      <div id="decals" aria-hidden="true">
+        <img id="decal-0" class="dashboard-decal" alt="" />
+        <img id="decal-1" class="dashboard-decal" alt="" />
+        <img id="decal-2" class="dashboard-decal" alt="" />
+      </div>
+      <div id="scanlines" aria-hidden="true"></div>
+    </main>
+    <footer>
+      <span>SPINNER <b>×</b> GOD’S EYE VIEW</span
+      ><span id="source-status">REAL GEOGRAPHY · SIMULATED TRAVEL</span
+      ><button id="help-button">CONTROLS / CALIBRATE</button>
+    </footer>
+    <div id="credits"></div>
+    <dialog id="speed-settings">
+      <h1>Set cruising speed</h1>
+      <form id="speed-form">
+        <label
+          >Speed (km/h)<input
+            id="cruise-speed"
+            type="number"
+            min="0"
+            max="432"
+            step="1"
+            required
+        /></label>
+        <p>SPD- resumes this speed after Hold.</p>
+        <button type="submit">SET SPEED</button
+        ><button type="button" id="speed-cancel">CANCEL</button>
+      </form>
+    </dialog>
+    <dialog id="settings">
+      <form method="dialog">
+        <button class="close" aria-label="Close settings">×</button>
+      </form>
+      <p class="kicker">SPINNER / SYSTEM CONFIGURATION</p>
+      <h1>Los Angeles ground station</h1>
+      <p>
+        Six windows, one continuous scene. Flight and Drive simulate travel over
+        real Los Angeles streets. Map shows the same position from above.
+      </p>
+      <p>
+        <b>Keyboard:</b> F flight · D drive · M map · Space hold · A auto/manual
+        · ← → steer · W/S speed · ↑ ↓ altitude in flight · R reset. The nine
+        displays on each side show available functions. The bottom circles are
+        reserved for physical controllers.
+      </p>
+      <p>
+        Drive demo follows a saved street route. Manual driving is free
+        movement, without collision or traffic simulation. Amber buildings use
+        OSM footprints with recorded heights where available; other heights are
+        estimates. The local model uses a flat ground surface.
+      </p>
+      <fieldset>
+        <legend>Mask calibration · Galaxy S10+</legend>
+        <label
+          >Screen width (mm)<input
+            id="screenW"
+            type="number"
+            min="120"
+            max="170"
+            step="0.1"
+            value="146.6" /></label
+        ><label
+          >Screen height (mm)<input
+            id="screenH"
+            type="number"
+            min="55"
+            max="85"
+            step="0.1"
+            value="69.4" /></label
+        ><label
+          >Horizontal offset (mm)<input
+            id="offsetX"
+            type="number"
+            min="-8"
+            max="8"
+            step="0.1"
+            value="0" /></label
+        ><label
+          >Vertical offset (mm)<input
+            id="offsetY"
+            type="number"
+            min="-8"
+            max="8"
+            step="0.1"
+            value="0" /></label
+        ><label
+          ><input id="plate-visible" type="checkbox" checked /> Show digital
+          plate</label
+        >
+      </fieldset>
+      <p>
+        White Seven Segment strips: environment / traffic notices on the left,
+        route guidance to Broadway / 5th on the right. The magenta flight gate
+        is projected 7.5 seconds ahead at the current altitude.
+      </p>
+      <p id="settings-status">
+        Map data: © OpenStreetMap contributors (ODbL). Satellite imagery loads
+        from Esri when enabled. No API keys required.
+      </p>
+    </dialog>
+  </body>
+</html>
