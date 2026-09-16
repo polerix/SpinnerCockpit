@@ -25,6 +25,11 @@ A single-file Design Component (`Spinner Cockpit.dc.html`) that renders a drivin
 
 Open `Spinner Cockpit.dc.html` in a browser. On the phone, load it fullscreen in the browser with `showPlate` off.
 
+GitHub Pages serves the original instrument demo from `index.html`. The newer
+Los Angeles cockpit uses `app.html` as its Vite entry point. Run `npm ci` and
+`npm run dev`, then open `http://localhost:4186/`; the development server serves
+`app.html` at that address. The production build writes `dist/app.html`.
+
 ## Calibration
 
 If the printed plate is not perfectly centred on the S10+ screen, use the **Calibration** section in Tweaks: set `showPlate` to off, load fullscreen, then nudge `offsetX` / `offsetY` until the panel edges disappear evenly behind the mask.

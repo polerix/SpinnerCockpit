@@ -3,23 +3,25 @@ branch: main
 
 ## Last sync
 
-date: 2026-09-15T12:42:20Z
-note: repo now populated upstream. Tree read at fa6320f7d40b (tree hash, not a commit).
+date: 2026-09-16
+note: local and GitHub histories joined on main; the local cockpit snapshot is preserved on backup/local-before-sync-2026-09-16.
 
 ### Updated in this project
-- Confirmed the cockpit, mask SVGs, and support runtime are live on `main`.
-- README.md in the repo documents mask geometry, tweakables, and the calibration flow.
-- Project `.dc.html` sources are not yet in the repo — only the bundled `index.html`.
+- Preserved the GitHub Pages homepage in `index.html`.
+- Added the newer Vite cockpit as `app.html`, served at the development server root.
+- Added the local app sources, tests, data, and fabrication assets to `main`.
 
 ## Screen map
 
 | Screen | Repo files |
 | --- | --- |
-| Spinner Cockpit.dc.html | index.html (bundled), support.js |
-| Spinner Cockpit v1 instruments.dc.html | (not in repo) |
+| Spinner Cockpit.dc.html | README.html (bundled), support.js |
+| Spinner Cockpit v1 instruments.dc.html | index.html (bundled), support.js |
+| Los Angeles cockpit | app.html, src/, spinner.css, public/ |
 | Mask geometry | Spinner Dashboard hud.svg, uploads/Spinner Dashboard hud.svg |
-| Reference art | Spinner Dashboard.svg, uploads/*.webp, uploads/*.jpg |
+| Reference art | Spinner Dashboard.svg, il_1140xN.4957876296_9b0j.webp, uploads/Screenshot 2026-09-14 at 4.05.18 PM.png |
 
 ## Sync history
 
 - 2026-09-14 — repo associated, empty upstream; README.md and github.md prepared locally.
+- 2026-09-16 — joined the two root histories without discarding either; kept the existing Pages homepage and added the local app separately.
