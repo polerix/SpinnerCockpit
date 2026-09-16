@@ -14,10 +14,9 @@ const gateImage =
   );
 import { parseDashboard } from "./dashboard.mjs";
 import {
-  flightTarget,
+  advanceFlightGate,
   buildManeuvers,
   navigationNotice,
-  LOOK_AHEAD_SECONDS,
 } from "./guidance.mjs";
 import * as C from "cesium";
 import { createApplicationViewer } from "gods-eye-view/application/viewer";
@@ -30,6 +29,7 @@ import {
   sampleRoute,
   movePosition,
   turnToward,
+  distance,
 } from "./navigation.mjs";
 
 const $ = (id) => document.getElementById(id);
@@ -134,7 +134,20 @@ let viewer,
   route,
   imageryLayer,
   imageryPromise,
+  gateEntity,
+  flightGate,
   ready = false;
+let gateSequence = 0;
+function setFlightGate(gate) {
+  flightGate = gate;
+  if (gate) gateSequence++;
+  if (gateEntity && gate)
+    gateEntity.position = C.Cartesian3.fromDegrees(
+      gate.lon,
+      gate.lat,
+      gate.altitude,
+    );
+}
 const buttons = new Map();
 let cruiseSpeed = state.speed;
 const fullscreen = async () => {
@@ -287,6 +300,11 @@ function reset() {
     const p = sampleRoute(route, 0);
     Object.assign(state, p);
   }
+  setFlightGate(
+    route && state.mode === "flight"
+      ? advanceFlightGate(null, state, route)
+      : null,
+  );
   sync();
 }
 function steer(amount) {
@@ -584,47 +602,58 @@ async function start() {
   ready = true;
   status("");
   sync();
-  const target = viewer.entities.add({
-    position: C.Cartesian3.fromDegrees(state.lon, state.lat, state.altitude),
+  gateEntity = viewer.entities.add({
+    position: C.Cartesian3.fromDegrees(
+      flightGate?.lon ?? state.lon,
+      flightGate?.lat ?? state.lat,
+      flightGate?.altitude ?? state.altitude,
+    ),
     billboard: {
       image: gateImage,
-      width: 240,
-      height: 121,
-      scaleByDistance: new C.NearFarScalar(20, 1.5, 1200, 0.25),
+      width: 120,
+      height: 60,
+      sizeInMeters: true,
       disableDepthTestDistance: Number.POSITIVE_INFINITY,
     },
   });
   let last = performance.now(),
-    hudTime = 0;
+    hudTime = 0,
+    manualClock = false;
+  function advanceSimulation(dt) {
+    if (!ready || state.paused) return;
+    if (pressed.has("arrowleft")) {
+      state.auto = false;
+      state.heading -= dt * 0.65;
+    }
+    if (pressed.has("arrowright")) {
+      state.auto = false;
+      state.heading += dt * 0.65;
+    }
+    if (pressed.has("w")) speed(dt * 10);
+    if (pressed.has("s")) speed(-dt * 10);
+    if (pressed.has("arrowup")) alt(dt * 90);
+    if (pressed.has("arrowdown")) alt(-dt * 90);
+    if (state.auto) {
+      state.travel += state.speed * dt;
+      const p = sampleRoute(route, state.travel);
+      state.lon = p.lon;
+      state.lat = p.lat;
+      state.heading = turnToward(state.heading, p.heading, dt * 1.1);
+    } else
+      Object.assign(
+        state,
+        movePosition(state.lon, state.lat, state.heading, state.speed * dt),
+      );
+    if (state.mode === "flight") {
+      const next = advanceFlightGate(flightGate, state, route);
+      if (next !== flightGate) setFlightGate(next);
+    }
+  }
   viewer.scene.preRender.addEventListener(() => {
     const now = performance.now(),
       dt = Math.min((now - last) / 1000, 0.1);
     last = now;
-    if (!state.paused && !document.hidden) {
-      if (pressed.has("arrowleft")) {
-        state.auto = false;
-        state.heading -= dt * 0.65;
-      }
-      if (pressed.has("arrowright")) {
-        state.auto = false;
-        state.heading += dt * 0.65;
-      }
-      if (pressed.has("w")) speed(dt * 10);
-      if (pressed.has("s")) speed(-dt * 10);
-      if (pressed.has("arrowup")) alt(dt * 90);
-      if (pressed.has("arrowdown")) alt(-dt * 90);
-      if (state.auto) {
-        state.travel += state.speed * dt;
-        const p = sampleRoute(route, state.travel);
-        state.lon = p.lon;
-        state.lat = p.lat;
-        state.heading = turnToward(state.heading, p.heading, dt * 1.1);
-      } else
-        Object.assign(
-          state,
-          movePosition(state.lon, state.lat, state.heading, state.speed * dt),
-        );
-    }
+    if (!manualClock && !document.hidden) advanceSimulation(dt);
     viewer.camera.frustum.fov = C.Math.toRadians(
       state.mode === "flight" ? 75 : 60,
     );
@@ -642,13 +671,7 @@ async function start() {
         roll: 0,
       },
     });
-    const ahead = flightTarget(state, route);
-    target.position = C.Cartesian3.fromDegrees(
-      ahead.lon,
-      ahead.lat,
-      ahead.altitude,
-    );
-    target.show = state.mode === "flight" && !state.map && state.speed > 0;
+    gateEntity.show = state.mode === "flight" && !state.map && !!flightGate;
     scrollNotice($("telemetry"), now);
     scrollNotice($("nav-detail"), now);
     if (now - hudTime > 200) {
@@ -667,6 +690,42 @@ async function start() {
       buttons.get("AUTO").setAttribute("aria-pressed", String(state.auto));
     }
   });
+  window.advanceTime = async (ms) => {
+    manualClock = true;
+    const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+    for (let i = 0; i < steps; i++) advanceSimulation(ms / 1000 / steps);
+    last = performance.now();
+    viewer.scene.requestRender();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  };
+  const targetState = () =>
+    flightGate ? {
+      ...flightGate,
+      sequence: gateSequence,
+      visible: gateEntity.show,
+      widthMeters: 120,
+      heightMeters: 60,
+      distanceMeters: distance(
+        [state.lon, state.lat],
+        [flightGate.lon, flightGate.lat],
+      ),
+    } : null;
+  window.render_game_to_text = () =>
+    JSON.stringify({
+      coordinates: "longitude/latitude in degrees, altitude and distance in meters",
+      mode: state.mode,
+      auto: state.auto,
+      paused: state.paused,
+      speedMetersPerSecond: state.speed,
+      spinner: {
+        lon: state.lon,
+        lat: state.lat,
+        altitude: state.altitude,
+        headingRadians: state.heading,
+        routeTravelMeters: state.travel,
+      },
+      gate: targetState(),
+    });
   window.spinner = {
     getState: () => ({
       ...state,
@@ -674,7 +733,7 @@ async function start() {
       ready,
       routeLength: route.total,
     }),
-    getTarget: () => ({ ...flightTarget(state, route), visible: target.show }),
+    getTarget: targetState,
     getCamera: () => ({ height: viewer.camera.positionCartographic.height }),
     getGeometry: () => ({
       panels: G.panels.length,

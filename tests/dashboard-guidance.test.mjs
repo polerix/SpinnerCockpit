@@ -5,6 +5,8 @@ import { parseDashboard } from "../src/dashboard.mjs";
 import { makeRoute, sampleRoute, distance } from "../src/navigation.mjs";
 import {
   flightTarget,
+  placeFlightGate,
+  advanceFlightGate,
   buildManeuvers,
   navigationNotice,
 } from "../src/guidance.mjs";
@@ -60,7 +62,7 @@ test("decals are evenly spaced between dashboard edges and top displays", () => 
     assert.ok(Math.abs(decal.box[3] - 6) < 0.01);
   }
 });
-test("automatic flight target follows the actual route 7.5 seconds ahead, including lap wrap", () => {
+test("automatic flight target follows the actual route 10 seconds ahead, including lap wrap", () => {
   const state = {
     auto: true,
     travel: route.total - 12,
@@ -68,13 +70,13 @@ test("automatic flight target follows the actual route 7.5 seconds ahead, includ
     altitude: 380,
   };
   const target = flightTarget(state, route),
-    expected = sampleRoute(route, state.travel + 315);
+    expected = sampleRoute(route, state.travel + 420);
   assert.equal(target.lon, expected.lon);
   assert.equal(target.lat, expected.lat);
   assert.equal(target.altitude, 380);
-  assert.equal(target.seconds, 7.5);
+  assert.equal(target.seconds, 10);
 });
-test("manual flight target projects current heading and speed", () => {
+test("manual flight target projects current heading at 10, 20 and 30 seconds", () => {
   const state = {
     auto: false,
     lon: -118.25,
@@ -85,10 +87,50 @@ test("manual flight target projects current heading and speed", () => {
   };
   const target = flightTarget(state, route);
   assert.ok(target.lon > state.lon);
-  assert.ok(
-    Math.abs(distance([state.lon, state.lat], [target.lon, target.lat]) - 150) <
-      0.1,
-  );
+  assert.ok(Math.abs(distance([state.lon, state.lat], [target.lon, target.lat]) - 200) < 0.1);
+  for (const seconds of [20, 30]) {
+    const future = flightTarget(state, route, seconds);
+    assert.equal(future.seconds, seconds);
+    assert.ok(Math.abs(distance([state.lon, state.lat], [future.lon, future.lat]) - state.speed * seconds) < 0.1);
+  }
+});
+test("flight gate stays at its placed world position until the spinner passes it", () => {
+  const state = {
+    auto: true,
+    travel: route.total - 12,
+    speed: 42,
+    altitude: 380,
+  };
+  const first = placeFlightGate(state, route);
+  const fixedPosition = [first.lon, first.lat, first.altitude];
+  state.travel += 315;
+  state.speed = 20;
+  state.altitude = 450;
+  assert.strictEqual(advanceFlightGate(first, state, route), first);
+  assert.deepEqual([first.lon, first.lat, first.altitude], fixedPosition);
+  state.travel = first.travel;
+  const next = advanceFlightGate(first, state, route);
+  assert.notStrictEqual(next, first);
+  assert.equal(next.travel, state.travel + state.speed * 10);
+  assert.equal(next.altitude, 450);
+});
+test("manual flight gate remains anchored through steering until its plane is crossed", () => {
+  const state = {
+    auto: false,
+    lon: -118.25,
+    lat: 34.05,
+    speed: 20,
+    heading: Math.PI / 2,
+    altitude: 200,
+  };
+  const first = placeFlightGate(state, route);
+  state.heading = 0;
+  state.lon = (first.lon + state.lon) / 2;
+  assert.strictEqual(advanceFlightGate(first, state, route), first);
+  state.lon = first.lon + 0.00001;
+  const next = advanceFlightGate(first, state, route);
+  assert.notStrictEqual(next, first);
+  assert.equal(next.heading, 0);
 });
 test("navigation changes from approach to turn to the following named street", () => {
   const first = maneuvers[0];

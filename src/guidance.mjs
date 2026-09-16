@@ -1,20 +1,43 @@
 import { sampleRoute, movePosition, bearing, distance } from "./navigation.mjs";
-export const LOOK_AHEAD_SECONDS = 7.5;
-export function flightTarget(state, route) {
+export const LOOK_AHEAD_SECONDS = 10;
+export function flightTarget(state, route, seconds = LOOK_AHEAD_SECONDS) {
   const point = state.auto
-    ? sampleRoute(route, state.travel + state.speed * LOOK_AHEAD_SECONDS)
+    ? sampleRoute(route, state.travel + state.speed * seconds)
     : movePosition(
         state.lon,
         state.lat,
         state.heading,
-        state.speed * LOOK_AHEAD_SECONDS,
+        state.speed * seconds,
       );
   return {
     lon: point.lon,
     lat: point.lat,
     altitude: state.altitude,
-    seconds: LOOK_AHEAD_SECONDS,
+    seconds,
   };
+}
+export function placeFlightGate(state, route) {
+  const target = flightTarget(state, route);
+  const travel = state.auto
+    ? state.travel + state.speed * LOOK_AHEAD_SECONDS
+    : null;
+  return {
+    ...target,
+    heading: state.auto ? sampleRoute(route, travel).heading : state.heading,
+    travel,
+  };
+}
+export function flightGatePassed(state, gate) {
+  if (gate.travel !== null && state.auto) return state.travel >= gate.travel;
+  const radians = Math.PI / 180;
+  const east =
+    (state.lon - gate.lon) * radians * 6371000 * Math.cos(gate.lat * radians);
+  const north = (state.lat - gate.lat) * radians * 6371000;
+  return east * Math.sin(gate.heading) + north * Math.cos(gate.heading) >= 0;
+}
+export function advanceFlightGate(gate, state, route) {
+  if (gate && !flightGatePassed(state, gate)) return gate;
+  return state.speed > 0 ? placeFlightGate(state, route) : null;
 }
 export function buildManeuvers(route, roads) {
   const edgeNames = new Map();
