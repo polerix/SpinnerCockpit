@@ -32,4 +32,67 @@ If the printed plate is not perfectly centred on the S10+ screen, use the **Cali
 ## Tweakables
 
 Gate speed, wireframe density, camera height, and LCD scroll rate.
-# SpinnerCockpit
+
+
+## God’s Eye View integration — Los Angeles
+
+Run `npm ci` then `npm run dev`. Open **http://localhost:4186** on the Mac mini.
+The adjacent `../gods-eye-view` installation is required; this project imports its
+public viewer and imagery modules directly. No changes to the GEV checkout are required.
+
+- **FLY / DRIVE:** first-person flight (380 m) or street-level driving (3.2 m).
+- **AUTO:** travel around a connected Broadway / Spring Street loop; toggle off for manual travel.
+- **MAP / NAV:** north-up overview at the vehicle’s current position.
+- **AMBER / SAT:** amber road/building schematic inspired by the supplied reference, or online satellite imagery.
+- **HOLD:** pause; **HOME:** return to the route start; **FULL:** fullscreen.
+- **SET:** keyboard controls and saved millimetre calibration for the printed mask.
+- Keyboard: F / D / M, Space to hold, A for auto/manual, arrows to steer/change flight altitude, W/S for speed, R to reset.
+
+The same 3×2 panel geometry and 146.6 × 69.4 mm defaults are retained from the
+original design. A single scene spans all six openings, keeping the perspective
+continuous and using one WebGL context. Existing `.dc.html` designs remain available.
+
+Travel is simulated, not tracked live. Driving is free movement without collision
+or traffic physics; the automatic demo follows OSM street centre lines. The local
+model uses flat ground. Building heights use OSM heights/levels when present and
+estimates otherwise. This first extract covers downtown Los Angeles, not the entire
+metropolitan area. It does not require API keys or load GEV’s voice/live-traffic UI.
+Satellite imagery requires network access. Real geography does not imply photorealistic buildings.
+
+### Data and verification
+
+`public/data/los-angeles.json`: derived from © OpenStreetMap contributors, licensed
+under [ODbL 1.0](https://www.openstreetmap.org/copyright), downloaded 2026-09-15.
+The editable derived database is distributed as JSON under ODbL 1.0.
+Source extract: https://api.openstreetmap.org/api/0.6/map?bbox=-118.260,34.040,-118.240,34.060
+Regenerate from a downloaded XML extract with `python3 scripts/import-osm.py path/to/extract.osm`.
+Satellite factories and viewer come from [God’s Eye View](https://github.com/bilawalsidhu/gods-eye-view) (MIT).
+
+`npm test` checks the connected street route, lap continuity, distance units, and heading wrap.
+`npm run build` builds browser assets. The default server is localhost-only.
+A phone connection requires a separately configured LAN server; it has not been enabled here.
+
+
+### Revised physical dashboard (September 15)
+
+The current renderer reads the actual contours from `Spinner Dashboard.svg`:
+six 27 × 21 mm main windows, nine 8.2 × 8.5 mm function displays per side,
+two 50.5 × 6 mm notice strips, and two black 10 mm controller openings.
+`Spinner Dashboard.stl` is the physical fabrication reference. The SVG coordinates
+are used directly; the old design component geometry is not used by this renderer.
+
+The top strips use the supplied `Seven Segment.ttf` locally, in white, on a single
+scrolling line. Left: environment/traffic notices (live feeds are currently not
+connected). Right: upcoming turns and distance to the Broadway / 5th destination
+on the saved downtown route. Manual travel off the route shows a return-to-route notice.
+
+The magenta flight gate uses `Spinner Dashboard hud.svg` unchanged in shape. It
+marks the route position 7.5 seconds ahead at the current speed and altitude;
+manual flight projects current heading. It is hidden in Drive, Map, and at zero speed.
+
+Small displays show names and animated dot patterns. Left: FLY, DRIVE, AUTO,
+LEFT, HOLD, RIGHT, ALT+, ALT-, SPD+. Right: SPD-, AMBER, SAT, ROAD, BLDG,
+NAV9, FULL, SET, HOME. SPD+ sets a cruising speed; SPD- resumes that speed.
+The two lower circular controller spaces remain completely black.
+
+Three red distressed insignia decals (`Spinner_Dash_Logo001.png`, `Spinner_Dash_Logo002.png`, `Spinner_Dash_Logo003.png`) are positioned on the dashboard top tier, evenly spaced across the outer edges and the notice strips along their common horizontal centerline.

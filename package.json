@@ -1,0 +1,23 @@
+{
+  "name": "spinner-cockpit",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host localhost --port 4186 --strictPort",
+    "build": "vite build",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "gods-eye-view": "file:../gods-eye-view",
+    "cesium": "1.138.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "vite-plugin-cesium": "^1.2.23"
+  },
+  "overrides": {
+    "@cesium/engine": "22.3.0",
+    "@cesium/widgets": "14.3.0"
+  }
+}
