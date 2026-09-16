@@ -4,11 +4,11 @@ branch: main
 ## Last sync
 
 date: 2026-09-16
-note: local and GitHub histories joined on main; the local cockpit snapshot is preserved on backup/local-before-sync-2026-09-16.
+note: local and GitHub histories joined on main; the local cockpit snapshot is preserved on backup/local-before-sync-2026-09-16. Pages publishes the built cockpit from docs/.
 
 ### Updated in this project
-- Preserved the GitHub Pages homepage in `index.html`.
-- Added the newer Vite cockpit as `app.html`, served at the development server root.
+- Preserved the original instrument demo in root `index.html`.
+- Added the newer Vite cockpit as `app.html`, served at the development server root and built into `docs/index.html` for Pages.
 - Added the local app sources, tests, data, and fabrication assets to `main`.
 
 ## Screen map
@@ -25,3 +25,4 @@ note: local and GitHub histories joined on main; the local cockpit snapshot is p
 
 - 2026-09-14 — repo associated, empty upstream; README.md and github.md prepared locally.
 - 2026-09-16 — joined the two root histories without discarding either; kept the existing Pages homepage and added the local app separately.
+- 2026-09-16 — published the Vite cockpit through the `docs/` Pages source; retained the original instrument demo in the repository root.

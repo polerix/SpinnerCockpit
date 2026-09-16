@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host localhost --port 4186 --strictPort",
     "build": "vite build",
+    "build:pages": "vite build --base=/SpinnerCockpit/ --outDir docs --emptyOutDir && node scripts/finish-pages-build.mjs",
+    "preview:pages": "vite preview --outDir docs --base=/SpinnerCockpit/ --host localhost --port 4187 --strictPort",
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {

@@ -25,10 +25,15 @@ A single-file Design Component (`Spinner Cockpit.dc.html`) that renders a drivin
 
 Open `Spinner Cockpit.dc.html` in a browser. On the phone, load it fullscreen in the browser with `showPlate` off.
 
-GitHub Pages serves the original instrument demo from `index.html`. The newer
-Los Angeles cockpit uses `app.html` as its Vite entry point. Run `npm ci` and
-`npm run dev`, then open `http://localhost:4186/`; the development server serves
-`app.html` at that address. The production build writes `dist/app.html`.
+The newer Los Angeles cockpit uses `app.html` as its Vite entry point. Run
+`npm ci` and `npm run dev`, then open `http://localhost:4186/`; the development
+server serves `app.html` at that address. The production build writes
+`dist/app.html`. The original instrument demo remains in the root `index.html`.
+
+GitHub Pages publishes the newer cockpit from `docs/index.html`. Run
+`npm run build:pages` to regenerate the committed static site. This build sets
+the `/SpinnerCockpit/` asset base needed by the project Pages URL and uses the
+adjacent `../gods-eye-view` checkout declared in `package.json`.
 
 ## Calibration
 

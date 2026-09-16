@@ -475,7 +475,7 @@ async function start() {
       true,
     ),
   );
-  const response = await fetch("/data/los-angeles.json");
+  const response = await fetch(`${import.meta.env.BASE_URL}data/los-angeles.json`);
   if (!response.ok) throw Error("Local map data is missing.");
   const data = await response.json();
   route = makeRoute(data.driveRoute);
