@@ -339,6 +339,59 @@ input[type="number"] {
   background: #000;
   pointer-events: none;
 }
+
+/* Commandeers the lower-left of the six 27x21mm main windows (panel index 3 of 6 -- see
+   src/cogitator-panel.mjs). Positioned by place() exactly like every other opening, so it tracks
+   the mask calibration controls the same way the buttons and circles do. */
+.cogitator-panel {
+  position: absolute;
+  overflow: hidden;
+  background: #000;
+  pointer-events: auto; /* hover peek needs mouseenter/mouseleave */
+}
+/* The panel opening is ~1.286:1 (27/21mm); the cogitator is built and measured at 4:3 (see
+   spinner-pip/MEASUREMENTS.md -- ASPECT_RATIO there, unverified but deliberate). Rather than
+   stretch the recreation to fit and distort the glyph proportions it was measured against,
+   object-fit: contain letterboxes it: a thin (~3.5% of height) bar top and bottom, filled by the
+   wrapper's own black background, which reads as bezel shadow rather than an obvious letterbox
+   against the rest of the cockpit's black. */
+.cogitator-panel canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transform: translateY(calc((1 - var(--cogitator-reveal, 0)) * 100%));
+  transition: transform 0.26s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cogitator-panel canvas {
+    transition: none;
+  }
+}
+.cogitator-panel canvas.is-snap {
+  animation: cogitator-snap 0.12s steps(2, end);
+}
+@keyframes cogitator-snap {
+  0% {
+    filter: brightness(1);
+  }
+  35% {
+    filter: brightness(2.4);
+    transform: translateY(calc((1 - var(--cogitator-reveal, 0)) * 100%)) translateX(2px);
+  }
+  70% {
+    filter: brightness(0.7);
+    transform: translateY(calc((1 - var(--cogitator-reveal, 0)) * 100%)) translateX(-1px);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cogitator-panel canvas.is-snap {
+    animation: none;
+  }
+}
 nav button {
   font-size: 2.4cqh;
   gap: 0.55cqh;

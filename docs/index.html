@@ -11,8 +11,8 @@
     />
     <title>Spinner · Los Angeles</title>
     <link rel="icon" href="data:," />
-    <script type="module" crossorigin src="/SpinnerCockpit/assets/app-G67AHbIi.js"></script>
-    <link rel="stylesheet" crossorigin href="/SpinnerCockpit/assets/app-DngqMg7Y.css">
+    <script type="module" crossorigin src="/SpinnerCockpit/assets/app-D5i115P9.js"></script>
+    <link rel="stylesheet" crossorigin href="/SpinnerCockpit/assets/app-UfTJRATN.css">
   </head>
   <body>
     <main id="cockpit" aria-label="Spinner cockpit, Los Angeles">
@@ -51,6 +51,12 @@
         class="manual-blank"
         aria-label="Reserved right manual control"
       ></div>
+      <!-- Decorative/supplementary, same as #plate and #scanlines: the cabin-purge status this
+           shows is not otherwise announced, so aria-hidden rather than a live region that would
+           speak on every FLY/DRIVE toggle. -->
+      <div id="cogitator-panel" class="cogitator-panel" aria-hidden="true">
+        <canvas id="cogitator-canvas"></canvas>
+      </div>
       <svg id="plate" aria-hidden="true" preserveAspectRatio="none"></svg>
       <div id="decals" aria-hidden="true">
         <img id="decal-0" class="dashboard-decal" alt="" />

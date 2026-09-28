@@ -31,10 +31,24 @@ import {
   turnToward,
   distance,
 } from "./navigation.mjs";
+import { Cogitator, FIELD_BOUNDS, REFERENCE_WIDTH, REFERENCE_HEIGHT } from "./cogitator.js";
+import {
+  detectTriggers,
+  createPanelState,
+  tickPanel,
+  purgeActive,
+  snapActive,
+  revealAmount,
+} from "./cogitator-panel.mjs";
 
 const $ = (id) => document.getElementById(id);
 const G = parseDashboard(dashboardSvg);
 const HUD = G.hud;
+// G.panels is sorted row-major (top row left-to-right, then bottom row left-to-right) by
+// parseDashboard's own sort -- index 3 is the first panel of the second row, i.e. lower-left of
+// the six. Guarded by a test in tests/cogitator-panel.test.mjs so a redrawn dashboard SVG that
+// changes panel order fails loudly instead of silently commandeering the wrong window.
+const COGITATOR_PANEL_INDEX = 3;
 let calibration = { screenW: 146.6, screenH: 69.4, offsetX: 0, offsetY: 0 };
 try {
   const saved = JSON.parse(localStorage.getItem("spinner.calibration") || "{}");
@@ -74,6 +88,10 @@ function layout() {
     );
   }
   G.circles.forEach((circle, i) => place($(`manual-${i}`), circle.box));
+  // Lower-left of the six main windows (index 3: row-major sort puts 0-2 on the top row, 3-5 on
+  // the bottom; 3 is the leftmost of those). See COGITATOR_PANEL_INDEX's own test for the check
+  // that guards this assumption if the dashboard SVG is ever redrawn.
+  place($("cogitator-panel"), G.panels[COGITATOR_PANEL_INDEX].box);
   const decalSize = 6;
   const decalY = G.strips[0].box[1] + G.strips[0].box[3] / 2 - decalSize / 2;
   const decalBoxes = [
@@ -437,6 +455,66 @@ let mapHeight = 2400;
 layout();
 sync();
 
+// Cogitator: commandeers the lower-left main window (src/cogitator-panel.mjs has the trigger
+// remap and reveal state machine; spinner-pip/ has the CRT recreation itself and how it was
+// measured against the real footage). Renders to its own offscreen canvas at full reference
+// resolution; the visible canvas gets just the lit-field crop each frame, not the whole frame --
+// see cogitator.js's FIELD_BOUNDS doc comment for why, and spinner.css's .cogitator-panel comment
+// for the 4:3-into-1.286:1 letterboxing this feeds. Ticked from the existing preRender loop
+// below, not a loop of its own.
+const cogitatorOffscreen = document.createElement("canvas");
+cogitatorOffscreen.width = REFERENCE_WIDTH;
+cogitatorOffscreen.height = REFERENCE_HEIGHT;
+const cogitator = new Cogitator(cogitatorOffscreen);
+const cogitatorPanelEl = $("cogitator-panel");
+const cogitatorCanvas = $("cogitator-canvas");
+const cogitatorCropW = FIELD_BOUNDS.right - FIELD_BOUNDS.left;
+const cogitatorCropH = FIELD_BOUNDS.bottom - FIELD_BOUNDS.top;
+cogitatorCanvas.width = cogitatorCropW * 2; // 2x supersample; object-fit:contain scales it to fit
+cogitatorCanvas.height = cogitatorCropH * 2;
+const cogitatorCtx = cogitatorCanvas.getContext("2d");
+const cogitatorPanel = createPanelState();
+let cogitatorHover = false;
+let cogitatorPrevSnapshot = null;
+let cogitatorSnapWasActive = false;
+cogitatorPanelEl.addEventListener("mouseenter", () => (cogitatorHover = true));
+cogitatorPanelEl.addEventListener("mouseleave", () => (cogitatorHover = false));
+function tickCogitator(dt) {
+  const snapshot = {
+    mode: state.mode,
+    paused: state.paused,
+    auto: state.auto,
+    travel: state.travel,
+  };
+  const triggers = detectTriggers(cogitatorPrevSnapshot, snapshot, route);
+  cogitatorPrevSnapshot = snapshot;
+  tickPanel(cogitatorPanel, dt, triggers, cogitatorHover);
+  cogitator.setPurge(purgeActive(cogitatorPanel));
+  const snapping = snapActive(cogitatorPanel);
+  if (snapping && !cogitatorSnapWasActive) {
+    // Force the keyframe animation to restart even if a previous snap's class never got cleared.
+    cogitatorCanvas.classList.remove("is-snap");
+    void cogitatorCanvas.offsetWidth;
+    cogitatorCanvas.classList.add("is-snap");
+  }
+  cogitatorSnapWasActive = snapping;
+  cogitatorPanelEl.style.setProperty("--cogitator-reveal", String(revealAmount(cogitatorPanel)));
+  cogitator.update(dt);
+  cogitator.draw();
+  cogitatorCtx.imageSmoothingEnabled = true;
+  cogitatorCtx.drawImage(
+    cogitatorOffscreen,
+    FIELD_BOUNDS.left,
+    FIELD_BOUNDS.top,
+    cogitatorCropW,
+    cogitatorCropH,
+    0,
+    0,
+    cogitatorCanvas.width,
+    cogitatorCanvas.height,
+  );
+}
+
 async function start() {
   viewer = createApplicationViewer({
     container: $("globe"),
@@ -653,7 +731,10 @@ async function start() {
     const now = performance.now(),
       dt = Math.min((now - last) / 1000, 0.1);
     last = now;
-    if (!manualClock && !document.hidden) advanceSimulation(dt);
+    if (!manualClock && !document.hidden) {
+      advanceSimulation(dt);
+      tickCogitator(dt);
+    }
     viewer.camera.frustum.fov = C.Math.toRadians(
       state.mode === "flight" ? 75 : 60,
     );
