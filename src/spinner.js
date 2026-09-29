@@ -31,6 +31,7 @@ import {
   turnToward,
   distance,
 } from "./navigation.mjs";
+import { resolveMovement } from "./collision.mjs";
 import { Cogitator, FIELD_BOUNDS, REFERENCE_WIDTH, REFERENCE_HEIGHT } from "./cogitator.js";
 import {
   detectTriggers,
@@ -138,6 +139,7 @@ const state = {
   heading: 0,
   lon: -118.251,
   lat: 34.047,
+  collision: null, // the building blocking this tick's move, if any -- set in advanceSimulation
   theme: "amber",
   roads: true,
   buildings: true,
@@ -150,6 +152,7 @@ let viewer,
   buildingEdges,
   labels,
   route,
+  buildingRecords,
   imageryLayer,
   imageryPromise,
   gateEntity,
@@ -576,6 +579,7 @@ async function start() {
   const data = await response.json();
   route = makeRoute(data.driveRoute);
   if (!route.total) throw Error("Local route is empty.");
+  buildingRecords = data.buildings; // raw footprint+height records, for collision.mjs -- distinct from the `buildings` Cesium GeometryInstance array built below for rendering
   roadLines = scene.primitives.add(new C.PolylineCollection());
   buildingEdges = scene.primitives.add(new C.PolylineCollection());
   const gold = C.Material.fromType("Color", {
@@ -699,6 +703,12 @@ async function start() {
     manualClock = false;
   function advanceSimulation(dt) {
     if (!ready || state.paused) return;
+    // CONTRACT.md "Collision": snapshotted BEFORE this tick's heading/speed/altitude
+    // input and position update, so a blocked tick reverts the whole tentative move
+    // -- position and altitude together, whichever or both changed -- not a partial
+    // application. See collision.mjs's resolveMovement for why this is one combined
+    // check rather than a separate position check and altitude check.
+    const before = { lon: state.lon, lat: state.lat, altitude: state.altitude };
     if (pressed.has("arrowleft")) {
       state.auto = false;
       state.heading -= dt * 0.65;
@@ -722,6 +732,15 @@ async function start() {
         state,
         movePosition(state.lon, state.lat, state.heading, state.speed * dt),
       );
+    const resolved = resolveMovement(
+      before,
+      { lon: state.lon, lat: state.lat, altitude: state.altitude },
+      buildingRecords,
+    );
+    state.lon = resolved.lon;
+    state.lat = resolved.lat;
+    state.altitude = resolved.altitude;
+    state.collision = resolved.blocked ? resolved.building : null;
     if (state.mode === "flight") {
       const next = advanceFlightGate(flightGate, state, route);
       if (next !== flightGate) setFlightGate(next);
