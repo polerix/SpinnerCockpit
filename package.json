@@ -11,8 +11,8 @@
     "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "gods-eye-view": "file:../gods-eye-view",
-    "cesium": "1.138.0"
+    "cesium": "1.138.0",
+    "gods-eye-view": "git+https://github.com/polerix/gods-eye-view.git#main"
   },
   "devDependencies": {
     "vite": "^6.0.0",
