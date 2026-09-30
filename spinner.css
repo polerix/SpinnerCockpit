@@ -342,11 +342,21 @@ input[type="number"] {
 
 /* Commandeers the lower-left of the six 27x21mm main windows (panel index 3 of 6 -- see
    src/cogitator-panel.mjs). Positioned by place() exactly like every other opening, so it tracks
-   the mask calibration controls the same way the buttons and circles do. */
+   the mask calibration controls the same way the buttons and circles do.
+
+   Background alpha is bound to the SAME --cogitator-reveal custom property that drives the
+   canvas's own translateY below -- this is the actual cut-in/cut-out, not the canvas transform
+   alone. Bug found 2026-09-30: this used to be a flat `background:#000`, permanently opaque
+   regardless of reveal state. The canvas's own reveal animation genuinely worked -- retract did
+   hide the cogitator's content -- but the WRAPPER stayed solid black forever, so the window it
+   commandeered never showed the shared globe view the other five panels show. It looked exactly
+   like "never returns to the regular display" because that's exactly what was happening: retract
+   only ever hid the canvas, never the opaque div sitting in front of the globe. Don't flatten
+   this back to a plain colour -- the transparency IS the fix. */
 .cogitator-panel {
   position: absolute;
   overflow: hidden;
-  background: #000;
+  background: rgba(0, 0, 0, var(--cogitator-reveal, 0));
   pointer-events: auto; /* hover peek needs mouseenter/mouseleave */
 }
 /* The panel opening is ~1.286:1 (27/21mm); the cogitator is built and measured at 4:3 (see

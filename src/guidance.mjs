@@ -39,6 +39,82 @@ export function advanceFlightGate(gate, state, route) {
   if (gate && !flightGatePassed(state, gate)) return gate;
   return state.speed > 0 ? placeFlightGate(state, route) : null;
 }
+
+// Interstitial feature, 2026-09-30: the magenta target gate used to be a single marker fixed at
+// exactly LOOK_AHEAD_SECONDS ahead. This generalises it to a queue of GATE_SERIES_LENGTH gates
+// spaced GATE_SPACING_SECONDS apart out to the same horizon, so the series reads as progress
+// markers converging on a destination rather than one lone target.
+//
+// Each gate is placed and held exactly like the single gate above -- fixed in world space
+// (travel distance in auto, lon/lat in manual) until flightGatePassed says the spinner crossed
+// it -- NOT a HUD overlay recomputed every frame. What's new is how a REPLACEMENT gate is placed
+// once the nearest one is passed: it extends GATE_SPACING_SECONDS further from the current
+// FARTHEST existing gate (not from the vehicle's live position), using CURRENT speed to convert
+// that step into world distance. Already-placed gates never move once laid down, so a mid-flight
+// speed change can't retroactively reposition them -- but every newly appended tail gate reflects
+// speed as of the moment it's created. A full lap through the queue is GATE_SERIES_LENGTH
+// respawns, i.e. roughly one look-ahead horizon's worth of travel, so spacing drift from a speed
+// change never compounds past that one cycle.
+export const GATE_SPACING_SECONDS = 2;
+export const GATE_SERIES_LENGTH = Math.round(LOOK_AHEAD_SECONDS / GATE_SPACING_SECONDS);
+
+function placeSeriesGate(reference, state, route) {
+  const seconds = (reference ? reference.seconds : 0) + GATE_SPACING_SECONDS;
+  if (state.auto) {
+    const travel =
+      (reference ? reference.travel : state.travel) + state.speed * GATE_SPACING_SECONDS;
+    const point = sampleRoute(route, travel);
+    return {
+      lon: point.lon,
+      lat: point.lat,
+      altitude: state.altitude,
+      seconds,
+      heading: point.heading,
+      travel,
+    };
+  }
+  const basis = reference ?? state;
+  const point = movePosition(
+    basis.lon,
+    basis.lat,
+    state.heading,
+    state.speed * GATE_SPACING_SECONDS,
+  );
+  return {
+    lon: point.lon,
+    lat: point.lat,
+    altitude: state.altitude,
+    seconds,
+    heading: state.heading,
+    travel: null,
+  };
+}
+
+/**
+ * Advances (or, given an empty/null series, seeds) the progress-gate queue. Same calling
+ * convention as advanceFlightGate: pass the previous series and get back either the SAME array
+ * reference (nothing passed this tick -- lets callers skip re-touching Cesium entities) or a new
+ * one with passed gates dropped and fresh tail gates appended to restore the full length. Passing
+ * `[]` or `null` seeds the initial queue, exactly as advanceFlightGate(null, ...) seeds the first
+ * single gate.
+ *
+ * The last element (`series.at(-1)`) is always the farthest gate -- the destination marker.
+ * Everything before it is an intermediate progress marker. This is a property of array position,
+ * not a flag baked into a gate at creation, because a given gate's role changes over its
+ * lifetime: it's laid down as the destination, and stays physically put while newer gates never
+ * get placed beyond it (it's never passed until every gate ahead of it already has been) --
+ * so by the time it's about to be passed, it's necessarily the nearest gate, not the farthest.
+ */
+export function advanceFlightGateSeries(series, state, route) {
+  const current = series ?? [];
+  if (state.speed <= 0) return current.length ? [] : current;
+  const anyPassed = current.some((gate) => flightGatePassed(state, gate));
+  if (!anyPassed && current.length === GATE_SERIES_LENGTH) return current;
+  let next = current.filter((gate) => !flightGatePassed(state, gate));
+  while (next.length < GATE_SERIES_LENGTH)
+    next = [...next, placeSeriesGate(next.at(-1) ?? null, state, route)];
+  return next;
+}
 export function buildManeuvers(route, roads) {
   const edgeNames = new Map();
   const key = (a, b) => JSON.stringify([a, b]);

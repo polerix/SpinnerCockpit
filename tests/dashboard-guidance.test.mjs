@@ -7,6 +7,9 @@ import {
   flightTarget,
   placeFlightGate,
   advanceFlightGate,
+  advanceFlightGateSeries,
+  GATE_SPACING_SECONDS,
+  GATE_SERIES_LENGTH,
   buildManeuvers,
   navigationNotice,
 } from "../src/guidance.mjs";
@@ -131,6 +134,92 @@ test("manual flight gate remains anchored through steering until its plane is cr
   const next = advanceFlightGate(first, state, route);
   assert.notStrictEqual(next, first);
   assert.equal(next.heading, 0);
+});
+test("progress gate series seeds five gates every 2s out to the existing 10s horizon, auto mode", () => {
+  const state = {
+    auto: true,
+    travel: route.total - 12,
+    speed: 42,
+    altitude: 380,
+  };
+  const series = advanceFlightGateSeries([], state, route);
+  assert.equal(series.length, GATE_SERIES_LENGTH);
+  assert.deepEqual(
+    series.map((g) => g.seconds),
+    [2, 4, 6, 8, 10],
+  );
+  for (const gate of series) {
+    const expected = sampleRoute(route, state.travel + state.speed * gate.seconds);
+    assert.equal(gate.lon, expected.lon);
+    assert.equal(gate.lat, expected.lat);
+  }
+  // Last is farthest -- the destination marker; matches the pre-existing single gate exactly.
+  const destination = series.at(-1);
+  const soloDestination = placeFlightGate(state, route);
+  assert.equal(destination.lon, soloDestination.lon);
+  assert.equal(destination.lat, soloDestination.lat);
+});
+test("progress gate series holds every gate fixed until passed, then replaces only the nearest", () => {
+  const state = {
+    auto: true,
+    travel: route.total - 12,
+    speed: 42,
+    altitude: 380,
+  };
+  const first = advanceFlightGateSeries([], state, route);
+  assert.strictEqual(advanceFlightGateSeries(first, state, route), first);
+  state.speed = 20;
+  state.altitude = 450;
+  state.travel = first[0].travel; // crosses only the nearest gate's plane
+  const next = advanceFlightGateSeries(first, state, route);
+  assert.notStrictEqual(next, first);
+  assert.equal(next.length, GATE_SERIES_LENGTH);
+  // The four gates that hadn't been passed are carried over by identity, unmoved by the speed
+  // change that happened after they were laid down -- held exactly like the single gate.
+  assert.strictEqual(next[0], first[1]);
+  assert.strictEqual(next[1], first[2]);
+  assert.strictEqual(next[2], first[3]);
+  assert.strictEqual(next[3], first[4]);
+  // The new tail gate extends GATE_SPACING_SECONDS past the previous farthest gate, using the
+  // speed *at the moment of extension* -- this is the horizon recomputing after a speed change.
+  const expectedTravel = first[4].travel + state.speed * GATE_SPACING_SECONDS;
+  assert.equal(next[4].travel, expectedTravel);
+  assert.equal(next[4].altitude, 450);
+  assert.equal(next[4].seconds, first[4].seconds + GATE_SPACING_SECONDS);
+});
+test("manual progress gate series remains anchored through steering until each plane is crossed", () => {
+  const state = {
+    auto: false,
+    lon: -118.25,
+    lat: 34.05,
+    speed: 20,
+    heading: Math.PI / 2,
+    altitude: 200,
+  };
+  const first = advanceFlightGateSeries([], state, route);
+  assert.equal(first.length, GATE_SERIES_LENGTH);
+  state.heading = 0;
+  state.lon = (first[0].lon + state.lon) / 2;
+  assert.strictEqual(advanceFlightGateSeries(first, state, route), first);
+  state.lon = first[0].lon + 0.00001;
+  const next = advanceFlightGateSeries(first, state, route);
+  assert.notStrictEqual(next, first);
+  assert.strictEqual(next[0], first[1]);
+  assert.equal(next.at(-1).heading, 0);
+});
+test("progress gate series clears when stopped and reseeds once moving again", () => {
+  const state = {
+    auto: true,
+    travel: route.total - 12,
+    speed: 42,
+    altitude: 380,
+  };
+  const series = advanceFlightGateSeries([], state, route);
+  state.speed = 0;
+  assert.deepEqual(advanceFlightGateSeries(series, state, route), []);
+  state.speed = 30;
+  const reseeded = advanceFlightGateSeries([], state, route);
+  assert.equal(reseeded.length, GATE_SERIES_LENGTH);
 });
 test("navigation changes from approach to turn to the following named street", () => {
   const first = maneuvers[0];

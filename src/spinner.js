@@ -14,7 +14,8 @@ const gateImage =
   );
 import { parseDashboard } from "./dashboard.mjs";
 import {
-  advanceFlightGate,
+  advanceFlightGateSeries,
+  GATE_SERIES_LENGTH,
   buildManeuvers,
   navigationNotice,
 } from "./guidance.mjs";
@@ -155,19 +156,31 @@ let viewer,
   buildingRecords,
   imageryLayer,
   imageryPromise,
-  gateEntity,
-  flightGate,
+  gateEntities = [],
+  gateSeries = [],
   ready = false;
 let gateSequence = 0;
-function setFlightGate(gate) {
-  flightGate = gate;
-  if (gate) gateSequence++;
-  if (gateEntity && gate)
-    gateEntity.position = C.Cartesian3.fromDegrees(
+// The destination (farthest gate, gateSeries.at(-1)) keeps the original single-gate look
+// unchanged -- full size, untinted. Intermediate progress gates are smaller and dimmer so the
+// destination still reads as THE target rather than as one more mark in a row of identical ones.
+const GATE_DESTINATION_STYLE = { scale: 1, color: C.Color.WHITE };
+const GATE_PROGRESS_STYLE = { scale: 0.62, color: C.Color.WHITE.withAlpha(0.55) };
+function setGateSeries(series) {
+  gateSeries = series;
+  gateSequence++;
+  if (!gateEntities.length) return;
+  for (let i = 0; i < gateEntities.length; i++) {
+    const gate = series[i];
+    if (!gate) continue;
+    gateEntities[i].position = C.Cartesian3.fromDegrees(
       gate.lon,
       gate.lat,
       gate.altitude,
     );
+    const style = i === series.length - 1 ? GATE_DESTINATION_STYLE : GATE_PROGRESS_STYLE;
+    gateEntities[i].billboard.scale = style.scale;
+    gateEntities[i].billboard.color = style.color;
+  }
 }
 const buttons = new Map();
 let cruiseSpeed = state.speed;
@@ -321,10 +334,10 @@ function reset() {
     const p = sampleRoute(route, 0);
     Object.assign(state, p);
   }
-  setFlightGate(
+  setGateSeries(
     route && state.mode === "flight"
-      ? advanceFlightGate(null, state, route)
-      : null,
+      ? advanceFlightGateSeries([], state, route)
+      : [],
   );
   sync();
 }
@@ -684,20 +697,24 @@ async function start() {
   ready = true;
   status("");
   sync();
-  gateEntity = viewer.entities.add({
-    position: C.Cartesian3.fromDegrees(
-      flightGate?.lon ?? state.lon,
-      flightGate?.lat ?? state.lat,
-      flightGate?.altitude ?? state.altitude,
-    ),
-    billboard: {
-      image: gateImage,
-      width: 120,
-      height: 60,
-      sizeInMeters: true,
-      disableDepthTestDistance: Number.POSITIVE_INFINITY,
-    },
+  gateEntities = Array.from({ length: GATE_SERIES_LENGTH }, (_, i) => {
+    const gate = gateSeries[i];
+    return viewer.entities.add({
+      position: C.Cartesian3.fromDegrees(
+        gate?.lon ?? state.lon,
+        gate?.lat ?? state.lat,
+        gate?.altitude ?? state.altitude,
+      ),
+      billboard: {
+        image: gateImage,
+        width: 120,
+        height: 60,
+        sizeInMeters: true,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+    });
   });
+  setGateSeries(gateSeries); // stamp per-slot style/position now that entities exist
   let last = performance.now(),
     hudTime = 0,
     manualClock = false;
@@ -742,8 +759,8 @@ async function start() {
     state.altitude = resolved.altitude;
     state.collision = resolved.blocked ? resolved.building : null;
     if (state.mode === "flight") {
-      const next = advanceFlightGate(flightGate, state, route);
-      if (next !== flightGate) setFlightGate(next);
+      const next = advanceFlightGateSeries(gateSeries, state, route);
+      if (next !== gateSeries) setGateSeries(next);
     }
   }
   viewer.scene.preRender.addEventListener(() => {
@@ -771,7 +788,8 @@ async function start() {
         roll: 0,
       },
     });
-    gateEntity.show = state.mode === "flight" && !state.map && !!flightGate;
+    for (let i = 0; i < gateEntities.length; i++)
+      gateEntities[i].show = state.mode === "flight" && !state.map && i < gateSeries.length;
     scrollNotice($("telemetry"), now);
     scrollNotice($("nav-detail"), now);
     if (now - hudTime > 200) {
@@ -798,18 +816,26 @@ async function start() {
     viewer.scene.requestRender();
     await new Promise((resolve) => requestAnimationFrame(resolve));
   };
-  const targetState = () =>
-    flightGate ? {
-      ...flightGate,
+  // Backward-shaped for anything that read the old single-gate getTarget(): the returned object
+  // still has lon/lat/altitude/etc at its top level, matching the destination (farthest) gate
+  // exactly as the single gate used to. `series` is new: every gate in the queue, nearest first,
+  // each flagged with isDestination so callers don't have to know array-position semantics.
+  const gateSummary = (gate, i) => ({
+    ...gate,
+    isDestination: i === gateSeries.length - 1,
+    visible: gateEntities[i]?.show ?? false,
+    widthMeters: 120,
+    heightMeters: 60,
+    distanceMeters: distance([state.lon, state.lat], [gate.lon, gate.lat]),
+  });
+  const targetState = () => {
+    if (!gateSeries.length) return null;
+    return {
+      ...gateSummary(gateSeries.at(-1), gateSeries.length - 1),
       sequence: gateSequence,
-      visible: gateEntity.show,
-      widthMeters: 120,
-      heightMeters: 60,
-      distanceMeters: distance(
-        [state.lon, state.lat],
-        [flightGate.lon, flightGate.lat],
-      ),
-    } : null;
+      series: gateSeries.map(gateSummary),
+    };
+  };
   window.render_game_to_text = () =>
     JSON.stringify({
       coordinates: "longitude/latitude in degrees, altitude and distance in meters",
