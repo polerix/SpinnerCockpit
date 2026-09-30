@@ -19,6 +19,13 @@ import {
   buildManeuvers,
   navigationNotice,
 } from "./guidance.mjs";
+import {
+  LANDING_PADS,
+  findCaptureEnvelope,
+  hasDeparted,
+  startLandingApproach,
+  advanceLandingApproach,
+} from "./landing.mjs";
 import * as C from "cesium";
 import { createApplicationViewer } from "gods-eye-view/application/viewer";
 import {
@@ -158,6 +165,8 @@ let viewer,
   imageryPromise,
   gateEntities = [],
   gateSeries = [],
+  landingApproach = null,
+  awaitingDeparture = null, // pad just lifted off from, excluded from re-capture until hasDeparted
   ready = false;
 let gateSequence = 0;
 // The destination (farthest gate, gateSeries.at(-1)) keeps the original single-gate look
@@ -334,6 +343,8 @@ function reset() {
     const p = sampleRoute(route, 0);
     Object.assign(state, p);
   }
+  landingApproach = null; // an in-progress approach doesn't survive a route/mode reset
+  awaitingDeparture = null;
   setGateSeries(
     route && state.mode === "flight"
       ? advanceFlightGateSeries([], state, route)
@@ -726,29 +737,59 @@ async function start() {
     // application. See collision.mjs's resolveMovement for why this is one combined
     // check rather than a separate position check and altitude check.
     const before = { lon: state.lon, lat: state.lat, altitude: state.altitude };
-    if (pressed.has("arrowleft")) {
-      state.auto = false;
-      state.heading -= dt * 0.65;
+    if (awaitingDeparture && hasDeparted(state, awaitingDeparture)) awaitingDeparture = null;
+    if (state.mode === "flight" && !landingApproach) {
+      const candidates = awaitingDeparture
+        ? LANDING_PADS.filter((p) => p !== awaitingDeparture)
+        : undefined;
+      const pad = findCaptureEnvelope(state, candidates);
+      if (pad) landingApproach = startLandingApproach(state, pad);
     }
-    if (pressed.has("arrowright")) {
-      state.auto = false;
-      state.heading += dt * 0.65;
+    if (state.mode === "flight" && landingApproach) {
+      // CONTRACT.md "Assisted landing": no new control to enter assist, and no new
+      // controls for it once active -- the existing steer and altitude inputs are
+      // reinterpreted as the two bounded assist axes (lateral offset from the
+      // automation's course line, sink-rate nudge) instead of free heading/altitude
+      // control. Forward speed is untouched: assist governs exactly two axes.
+      const input = {
+        lateral: pressed.has("arrowleft") ? -1 : pressed.has("arrowright") ? 1 : 0,
+        descent: pressed.has("arrowdown") ? 1 : pressed.has("arrowup") ? -1 : 0,
+      };
+      const step = advanceLandingApproach(landingApproach, state, input, dt);
+      state.lon = step.lon;
+      state.lat = step.lat;
+      state.altitude = step.altitude;
+      if (step.liftedOff) {
+        awaitingDeparture = landingApproach.pad;
+        landingApproach = null;
+      } else {
+        landingApproach = step.landing;
+      }
+    } else {
+      if (pressed.has("arrowleft")) {
+        state.auto = false;
+        state.heading -= dt * 0.65;
+      }
+      if (pressed.has("arrowright")) {
+        state.auto = false;
+        state.heading += dt * 0.65;
+      }
+      if (pressed.has("arrowup")) alt(dt * 90);
+      if (pressed.has("arrowdown")) alt(-dt * 90);
+      if (state.auto) {
+        state.travel += state.speed * dt;
+        const p = sampleRoute(route, state.travel);
+        state.lon = p.lon;
+        state.lat = p.lat;
+        state.heading = turnToward(state.heading, p.heading, dt * 1.1);
+      } else
+        Object.assign(
+          state,
+          movePosition(state.lon, state.lat, state.heading, state.speed * dt),
+        );
     }
     if (pressed.has("w")) speed(dt * 10);
     if (pressed.has("s")) speed(-dt * 10);
-    if (pressed.has("arrowup")) alt(dt * 90);
-    if (pressed.has("arrowdown")) alt(-dt * 90);
-    if (state.auto) {
-      state.travel += state.speed * dt;
-      const p = sampleRoute(route, state.travel);
-      state.lon = p.lon;
-      state.lat = p.lat;
-      state.heading = turnToward(state.heading, p.heading, dt * 1.1);
-    } else
-      Object.assign(
-        state,
-        movePosition(state.lon, state.lat, state.heading, state.speed * dt),
-      );
     const resolved = resolveMovement(
       before,
       { lon: state.lon, lat: state.lat, altitude: state.altitude },
@@ -860,6 +901,19 @@ async function start() {
       routeLength: route.total,
     }),
     getTarget: targetState,
+    getLanding: () =>
+      landingApproach
+        ? {
+            pad: landingApproach.pad.name,
+            parked: landingApproach.parked,
+            lateralOffset: landingApproach.lateralOffset,
+            sinkRate: landingApproach.sinkRate,
+            traveled: landingApproach.traveled,
+            totalDistance: landingApproach.totalDistance,
+            altitude: state.altitude,
+            groundAltitude: landingApproach.pad.groundAltitude,
+          }
+        : null,
     getCamera: () => ({ height: viewer.camera.positionCartographic.height }),
     getGeometry: () => ({
       panels: G.panels.length,
