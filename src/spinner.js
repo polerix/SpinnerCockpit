@@ -40,6 +40,7 @@ import {
   distance,
 } from "./navigation.mjs";
 import { resolveMovement } from "./collision.mjs";
+import { isSevereImpact, createLock, advanceLock } from "./lock.mjs";
 import { Cogitator, FIELD_BOUNDS, REFERENCE_WIDTH, REFERENCE_HEIGHT } from "./cogitator.js";
 import {
   detectTriggers,
@@ -167,6 +168,8 @@ let viewer,
   gateSeries = [],
   landingApproach = null,
   awaitingDeparture = null, // pad just lifted off from, excluded from re-capture until hasDeparted
+  lock = null, // CONTRACT.md "Catastrophic lock": active dead-man's-switch sequence, or null
+  incident = null, // most recently resolved lock's completed incident record (Sprint 4 reads this)
   ready = false;
 let gateSequence = 0;
 // The destination (farthest gate, gateSeries.at(-1)) keeps the original single-gate look
@@ -222,6 +225,12 @@ const keysLeft = [
     "HOLD",
     "Pause or resume travel",
     () => {
+      // CONTRACT.md "Catastrophic lock": HOLD's ordinary tap behaviour is completely
+      // unchanged outside of an active lock sequence -- during one, HOLD is the
+      // dead-man's-switch grip instead, driven by continuous hold-tracking below, not
+      // this tap. Suppressing the tap here (rather than leaving it to fire alongside the
+      // grip) is what keeps the two from fighting over the same press.
+      if (lock) return;
       state.paused = !state.paused;
       sync();
     },
@@ -294,6 +303,14 @@ for (const [side, items] of [
     name.textContent = text;
     button.append(dots, name);
     button.addEventListener("click", action);
+    if (text === "HOLD") {
+      // Mouse/touch equivalent of holding Space: feeds the SAME `pressed` entry the
+      // keyboard already uses, so advanceSimulation's dead-man's-switch read
+      // (pressed.has(" ")) doesn't care which input source is gripping it.
+      button.addEventListener("pointerdown", () => pressed.add(" "));
+      for (const ev of ["pointerup", "pointerleave", "pointercancel"])
+        button.addEventListener(ev, () => pressed.delete(" "));
+    }
     $(side ? "keys-right" : "keys-left").append(button);
     buttons.set(text, button);
   }
@@ -737,35 +754,14 @@ async function start() {
     // application. See collision.mjs's resolveMovement for why this is one combined
     // check rather than a separate position check and altitude check.
     const before = { lon: state.lon, lat: state.lat, altitude: state.altitude };
-    if (awaitingDeparture && hasDeparted(state, awaitingDeparture)) awaitingDeparture = null;
-    if (state.mode === "flight" && !landingApproach) {
-      const candidates = awaitingDeparture
-        ? LANDING_PADS.filter((p) => p !== awaitingDeparture)
-        : undefined;
-      const pad = findCaptureEnvelope(state, candidates);
-      if (pad) landingApproach = startLandingApproach(state, pad);
-    }
-    if (state.mode === "flight" && landingApproach) {
-      // CONTRACT.md "Assisted landing": no new control to enter assist, and no new
-      // controls for it once active -- the existing steer and altitude inputs are
-      // reinterpreted as the two bounded assist axes (lateral offset from the
-      // automation's course line, sink-rate nudge) instead of free heading/altitude
-      // control. Forward speed is untouched: assist governs exactly two axes.
-      const input = {
-        lateral: pressed.has("arrowleft") ? -1 : pressed.has("arrowright") ? 1 : 0,
-        descent: pressed.has("arrowdown") ? 1 : pressed.has("arrowup") ? -1 : 0,
-      };
-      const step = advanceLandingApproach(landingApproach, state, input, dt);
-      state.lon = step.lon;
-      state.lat = step.lat;
-      state.altitude = step.altitude;
-      if (step.liftedOff) {
-        awaitingDeparture = landingApproach.pad;
-        landingApproach = null;
-      } else {
-        landingApproach = step.landing;
-      }
-    } else {
+    const wasLocked = !!lock;
+    if (lock) {
+      // CONTRACT.md "Catastrophic lock": top-priority state -- pre-empts assisted
+      // landing and normal altitude control entirely while active. Heading/lateral
+      // authority stays full/near-full (the same manual steering below, unchanged);
+      // only altitude is no longer optional. arrowup/arrowdown do nothing here: HOLD
+      // (pressed.has(" ")) is the dead-man's-switch grip now, not a pause toggle, and
+      // it's the only thing governing descent for as long as this sequence runs.
       if (pressed.has("arrowleft")) {
         state.auto = false;
         state.heading -= dt * 0.65;
@@ -774,8 +770,6 @@ async function start() {
         state.auto = false;
         state.heading += dt * 0.65;
       }
-      if (pressed.has("arrowup")) alt(dt * 90);
-      if (pressed.has("arrowdown")) alt(-dt * 90);
       if (state.auto) {
         state.travel += state.speed * dt;
         const p = sampleRoute(route, state.travel);
@@ -787,18 +781,100 @@ async function start() {
           state,
           movePosition(state.lon, state.lat, state.heading, state.speed * dt),
         );
+      const step = advanceLock(lock, state, dt, pressed.has(" "));
+      state.altitude = step.altitude;
+      lock = step.lock;
+      if (step.resolved) {
+        incident = step.incident;
+        lock = null;
+      }
+    } else {
+      if (awaitingDeparture && hasDeparted(state, awaitingDeparture)) awaitingDeparture = null;
+      if (state.mode === "flight" && !landingApproach) {
+        const candidates = awaitingDeparture
+          ? LANDING_PADS.filter((p) => p !== awaitingDeparture)
+          : undefined;
+        const pad = findCaptureEnvelope(state, candidates);
+        if (pad) landingApproach = startLandingApproach(state, pad);
+      }
+      if (state.mode === "flight" && landingApproach) {
+        // CONTRACT.md "Assisted landing": no new control to enter assist, and no new
+        // controls for it once active -- the existing steer and altitude inputs are
+        // reinterpreted as the two bounded assist axes (lateral offset from the
+        // automation's course line, sink-rate nudge) instead of free heading/altitude
+        // control. Forward speed is untouched: assist governs exactly two axes.
+        const input = {
+          lateral: pressed.has("arrowleft") ? -1 : pressed.has("arrowright") ? 1 : 0,
+          descent: pressed.has("arrowdown") ? 1 : pressed.has("arrowup") ? -1 : 0,
+        };
+        const step = advanceLandingApproach(landingApproach, state, input, dt);
+        state.lon = step.lon;
+        state.lat = step.lat;
+        state.altitude = step.altitude;
+        if (step.liftedOff) {
+          awaitingDeparture = landingApproach.pad;
+          landingApproach = null;
+        } else {
+          landingApproach = step.landing;
+        }
+      } else {
+        if (pressed.has("arrowleft")) {
+          state.auto = false;
+          state.heading -= dt * 0.65;
+        }
+        if (pressed.has("arrowright")) {
+          state.auto = false;
+          state.heading += dt * 0.65;
+        }
+        if (pressed.has("arrowup")) alt(dt * 90);
+        if (pressed.has("arrowdown")) alt(-dt * 90);
+        if (state.auto) {
+          state.travel += state.speed * dt;
+          const p = sampleRoute(route, state.travel);
+          state.lon = p.lon;
+          state.lat = p.lat;
+          state.heading = turnToward(state.heading, p.heading, dt * 1.1);
+        } else
+          Object.assign(
+            state,
+            movePosition(state.lon, state.lat, state.heading, state.speed * dt),
+          );
+      }
     }
     if (pressed.has("w")) speed(dt * 10);
     if (pressed.has("s")) speed(-dt * 10);
-    const resolved = resolveMovement(
-      before,
-      { lon: state.lon, lat: state.lat, altitude: state.altitude },
-      buildingRecords,
-    );
-    state.lon = resolved.lon;
-    state.lat = resolved.lat;
-    state.altitude = resolved.altitude;
-    state.collision = resolved.blocked ? resolved.building : null;
+    if (wasLocked) {
+      // CONTRACT.md "Catastrophic lock": the collision that triggered this sequence
+      // already did its job; re-applying the ordinary hard stop to every remaining tick
+      // of an active sequence makes the forced descent impossible, not survivable --
+      // found live, flying a real sequence: the craft stays horizontally inside the
+      // triggering building's footprint for a while as it falls, so every subsequent
+      // tick's lower (and therefore still-below-that-roof) altitude kept re-colliding
+      // and reverting straight back to the trigger altitude, forever. A lock in progress
+      // supersedes the ordinary hard stop the same way it supersedes everything else.
+      state.collision = null;
+    } else {
+      const resolved = resolveMovement(
+        before,
+        { lon: state.lon, lat: state.lat, altitude: state.altitude },
+        buildingRecords,
+      );
+      state.lon = resolved.lon;
+      state.lat = resolved.lat;
+      state.altitude = resolved.altitude;
+      // Severity is read off this SAME collision check, not a separate measurement --
+      // state.speed is whatever this tick's blocked movement was attempting
+      // (resolveMovement only reverts position/altitude). Lock supersedes an
+      // in-progress assisted approach immediately: cleared the instant it triggers,
+      // same "auto pre-empts, doesn't restart mid-cycle" idiom as the cogitator panel's
+      // own trigger precedence, applied to a new pair of states.
+      if (resolved.blocked && isSevereImpact(state.speed)) {
+        lock = createLock(state, resolved.building, landingApproach, pressed.has(" "));
+        landingApproach = null;
+        awaitingDeparture = null;
+      }
+      state.collision = resolved.blocked ? resolved.building : null;
+    }
     if (state.mode === "flight") {
       const next = advanceFlightGateSeries(gateSeries, state, route);
       if (next !== gateSeries) setGateSeries(next);
@@ -914,6 +990,16 @@ async function start() {
             groundAltitude: landingApproach.pad.groundAltitude,
           }
         : null,
+    getLock: () =>
+      lock
+        ? {
+            gripping: lock.gripping,
+            holdDuration: lock.holdDuration,
+            releaseCount: lock.releaseCount,
+            altitude: state.altitude,
+          }
+        : null,
+    getIncident: () => incident,
     getCamera: () => ({ height: viewer.camera.positionCartographic.height }),
     getGeometry: () => ({
       panels: G.panels.length,
