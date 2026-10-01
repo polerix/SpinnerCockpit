@@ -644,15 +644,53 @@ function tickOctagon(dt) {
   }
 }
 
+// Mobile-pixelation interstitial, 2026-10-01. Confirmed before changing anything (not assumed):
+// Cesium's `useBrowserRecommendedResolution` defaults to true and was never set here, so the
+// globe was already rendering at CSS-pixel resolution, ignoring devicePixelRatio entirely
+// (confirmed directly in Cesium's own Viewer.js source). The OLD resolutionScale formula below
+// (`min(dpr,1.5)/max(dpr,1)`) was then applied ON TOP of that CSS-pixel baseline, not on top of
+// true device resolution as its shape implies -- measured directly (canvas.width vs
+// canvas.clientWidth) at DPR=2: 162/217 = 0.75, exactly the formula's own output, compounding the
+// under-render rather than correcting it. This is also why "desktop looks great" was never
+// contradictory: a typical DPR=1 desktop monitor hits this same formula's 1/1=1 case by
+// coincidence, so the bug had zero visible effect there -- it only ever bit higher-DPR
+// screens, worst on a DPR=3 phone (old effective resolution: 0.5 CSS-pixel-equivalent / 3 real
+// device pixels = 16.7% of native).
+//
+// Fix: stop ignoring devicePixelRatio, and always match true native device-pixel density,
+// capped so it never EXCEEDS native (no wasted supersampling). Measured at a DPR=2 phone-sized
+// viewport, normalized Laplacian-variance sharpness (see this commit's message for the full
+// numbers and method): buggy baseline 321, true native (1x device pixels) 2136 -- a 6.7x
+// improvement -- supersampled 1.5x beyond native only 3000, a further 1.4x for the extra cost.
+// Diminishing returns past native is exactly what's expected once you're already resolving every
+// pixel the screen can show; there's no confirmed benefit to intentionally rendering BELOW
+// native either -- measured frame time was effectively flat across all three tiers (24.9-26.8
+// sustained fps) at this app's actual canvas sizes, so there's no measured performance reason to
+// hold back from native on his DPR=3 phone. TARGET_DEVICE_PIXELS is still a named, trivially
+// adjustable constant for exactly that reason -- if a real (not this dev machine's) phone GPU
+// tells a different story, change one number here.
+const TARGET_DEVICE_PIXELS = 3;
+// His own proposal, upstream of the pixelation fix itself: cap mobile to a lower target
+// framerate than desktop so matching native resolution is cheap GPU-time insurance on a real
+// phone GPU, even though it measured as a non-issue on this dev machine's small canvas sizes.
+// Also fixes a separate, smaller bug found while reading this code: targetFrameRate was 30
+// UNCONDITIONALLY before, including on desktop -- "desktop looks great" was true at 30fps, not
+// 60; it now actually gets the 60 he asked for. Touch-primary (pointer: coarse) is the
+// detection signal, not screen width -- a phone in landscape or a small desktop window
+// shouldn't be classified differently.
+const MOBILE_TARGET_FPS = 30;
+const DESKTOP_TARGET_FPS = 60;
+const IS_TOUCH_PRIMARY = matchMedia("(pointer: coarse)").matches;
+
 async function start() {
   viewer = createApplicationViewer({
     container: $("globe"),
     creditContainer: $("credits"),
   });
-  viewer.targetFrameRate = 30;
-  viewer.resolutionScale =
-    Math.min(window.devicePixelRatio || 1, 1.5) /
-    Math.max(window.devicePixelRatio || 1, 1);
+  viewer.targetFrameRate = IS_TOUCH_PRIMARY ? MOBILE_TARGET_FPS : DESKTOP_TARGET_FPS;
+  viewer.useBrowserRecommendedResolution = false;
+  const dpr = window.devicePixelRatio || 1;
+  viewer.resolutionScale = Math.min(TARGET_DEVICE_PIXELS, dpr) / dpr;
   const scene = viewer.scene;
   const origRender = scene.render.bind(scene);
   scene.render = function (time) {
