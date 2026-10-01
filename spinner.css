@@ -402,6 +402,30 @@ input[type="number"] {
     animation: none;
   }
 }
+/* Alarm and debrief: same "opaque overlay commandeering a main window" idiom as
+   .cogitator-panel, but neither needs that panel's hover-peek or slide-reveal -- CONTRACT.md's
+   Alarm section is explicit that this screen has no acknowledgement and "just changes", so the
+   panel-level reveal is a hard cut (no transition), matching the strobe content's own measured
+   snap (ALARM-MEASUREMENTS.md #1) rather than contradicting it with a soft fade wrapped around it. */
+.alarm-panel,
+.debrief-panel {
+  position: absolute;
+  overflow: hidden;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+.alarm-panel.revealed,
+.debrief-panel.revealed {
+  opacity: 1;
+}
+.alarm-panel canvas,
+.debrief-panel canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
 nav button {
   font-size: 2.4cqh;
   gap: 0.55cqh;

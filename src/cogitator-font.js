@@ -37,6 +37,32 @@ export const GLYPHS = {
   T: G('11111', '00100', '00100', '00100', '00100', '00100', '00100', '00100'),
   U: G('10001', '10001', '10001', '10001', '10001', '10001', '10001', '01110'),
   V: G('10001', '10001', '10001', '10001', '10001', '01010', '01010', '00100'),
+  // Added for the OVRLOC FAIL / CEL-DON alarm screen (ALARM-MEASUREMENTS.md) -- the
+  // cogitator readouts built before it never needed L, F, A, M, 1 or 7. Same blocky,
+  // single-stroke-width style as the existing set, not re-measured from footage (no
+  // frame of this film's font ever isolates these specific characters cleanly enough
+  // to trace) -- a legible match to the existing glyphs' weight, not a measurement.
+  1: G('00100', '01100', '00100', '00100', '00100', '00100', '00100', '11111'),
+  7: G('11111', '00001', '00010', '00100', '00100', '01000', '01000', '01000'),
+  A: G('01110', '10001', '10001', '10001', '11111', '10001', '10001', '10001'),
+  F: G('11111', '10000', '10000', '11110', '10000', '10000', '10000', '10000'),
+  L: G('10000', '10000', '10000', '10000', '10000', '10000', '10000', '11111'),
+  M: G('10001', '11011', '10101', '10101', '10001', '10001', '10001', '10001'),
+  // Added for the debrief panel (src/debrief.js) -- an original instrument, not a footage
+  // recreation, so these four are a legible match to the existing glyphs' weight rather
+  // than a measurement, same reasoning as the alarm-screen additions just above.
+  3: G('11111', '00001', '00001', '00111', '00001', '00001', '10001', '01110'),
+  B: G('11110', '10001', '10001', '11110', '10001', '10001', '10001', '11110'),
+  H: G('10001', '10001', '10001', '11111', '10001', '10001', '10001', '10001'),
+  S: G('01111', '10000', '10000', '01110', '00001', '00001', '10001', '01110'),
+  // Found missing while testing debrief.js: negative headings/coordinates need a minus sign, or
+  // it silently renders as a blank space (drawBitmapText's own GLYPHS[ch] || GLYPHS[' '] fallback)
+  // -- losing the sign is worse than an obviously-wrong glyph, since it reads as a plausible but
+  // incorrect positive value instead of an evidently broken one.
+  '-': G('00000', '00000', '00000', '11111', '00000', '00000', '00000', '00000'),
+  // Found the same way, same pass: the debrief panel echoes pad names verbatim (e.g. "Bradbury
+  // Building"), and the font had never needed a Y before.
+  Y: G('10001', '10001', '01010', '00100', '00100', '00100', '00100', '00100'),
 };
 
 /**

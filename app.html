@@ -53,6 +53,17 @@
       <div id="cogitator-panel" class="cogitator-panel" aria-hidden="true">
         <canvas id="cogitator-canvas"></canvas>
       </div>
+      <!-- CONTRACT.md "Alarm": its own dedicated main window, separate from the cogitator's
+           slot and from the debrief panel. No acknowledgement control -- the trigger flips a
+           boolean and this panel reveals itself, same idiom as the cogitator above. -->
+      <div id="alarm-panel" class="alarm-panel" aria-hidden="true">
+        <canvas id="alarm-canvas"></canvas>
+      </div>
+      <!-- CONTRACT.md "Debrief": its own dedicated main window, static/readable/after-the-fact,
+           separate from the live/reactive alarm above. -->
+      <div id="debrief-panel" class="debrief-panel" aria-hidden="true">
+        <canvas id="debrief-canvas"></canvas>
+      </div>
       <svg id="plate" aria-hidden="true" preserveAspectRatio="none"></svg>
       <div id="decals" aria-hidden="true">
         <img id="decal-0" class="dashboard-decal" alt="" />

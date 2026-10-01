@@ -39,6 +39,33 @@ test("panel index 3 is the lower-left of the six main windows, in the live dashb
   }
 });
 
+// Same guard reasoning, same consequence (a redrawn SVG silently commandeers the wrong window)
+// for the two panels Sprint 4 added: spinner.js hardcodes ALARM_PANEL_INDEX = 1 and
+// DEBRIEF_PANEL_INDEX = 5 rather than deriving them.
+test("panel index 1 is on the top row (row-major sort: 0-2 top, 3-5 bottom)", () => {
+  const g = parseDashboard(
+    readFileSync(new URL("../Spinner Dashboard.svg", import.meta.url), "utf8"),
+  );
+  const topRowMaxY = Math.max(...g.panels.slice(0, 3).map((p) => p.box[1] + p.box[3] / 2));
+  const bottomRowMinY = Math.min(...g.panels.slice(3, 6).map((p) => p.box[1] + p.box[3] / 2));
+  assert.ok(topRowMaxY < bottomRowMinY, "row-major sort assumption itself must hold");
+  const [, y] = [g.panels[1].box[0], g.panels[1].box[1] + g.panels[1].box[3] / 2];
+  assert.ok(y <= topRowMaxY + 0.1, "panel 1 must be in the top row");
+});
+
+test("panel index 5 is the rightmost of the bottom row", () => {
+  const g = parseDashboard(
+    readFileSync(new URL("../Spinner Dashboard.svg", import.meta.url), "utf8"),
+  );
+  const bottomRow = g.panels.slice(3, 6);
+  const target = g.panels[5];
+  const targetX = target.box[0] + target.box[2] / 2;
+  for (const p of bottomRow) {
+    const px = p.box[0] + p.box[2] / 2;
+    assert.ok(px <= targetX + 0.1, "panel 5 must be at least as far right as every bottom-row panel");
+  }
+});
+
 // ---------------------------------------------------------------------------------------------
 // detectTriggers: each edge fires exactly once, not on every tick it remains true.
 

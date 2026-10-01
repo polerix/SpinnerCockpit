@@ -42,6 +42,8 @@ import {
 import { resolveMovement } from "./collision.mjs";
 import { isSevereImpact, createLock, advanceLock } from "./lock.mjs";
 import { Cogitator, FIELD_BOUNDS, REFERENCE_WIDTH, REFERENCE_HEIGHT } from "./cogitator.js";
+import { Alarm } from "./alarm.js";
+import { Debrief } from "./debrief.js";
 import {
   detectTriggers,
   createPanelState,
@@ -59,6 +61,10 @@ const HUD = G.hud;
 // the six. Guarded by a test in tests/cogitator-panel.test.mjs so a redrawn dashboard SVG that
 // changes panel order fails loudly instead of silently commandeering the wrong window.
 const COGITATOR_PANEL_INDEX = 3;
+// Top-middle and bottom-right of the six -- both otherwise-plain "window onto the shared globe"
+// slots, same guard reasoning as COGITATOR_PANEL_INDEX (see its own test).
+const ALARM_PANEL_INDEX = 1;
+const DEBRIEF_PANEL_INDEX = 5;
 let calibration = { screenW: 146.6, screenH: 69.4, offsetX: 0, offsetY: 0 };
 try {
   const saved = JSON.parse(localStorage.getItem("spinner.calibration") || "{}");
@@ -102,6 +108,8 @@ function layout() {
   // the bottom; 3 is the leftmost of those). See COGITATOR_PANEL_INDEX's own test for the check
   // that guards this assumption if the dashboard SVG is ever redrawn.
   place($("cogitator-panel"), G.panels[COGITATOR_PANEL_INDEX].box);
+  place($("alarm-panel"), G.panels[ALARM_PANEL_INDEX].box);
+  place($("debrief-panel"), G.panels[DEBRIEF_PANEL_INDEX].box);
   const decalSize = 6;
   const decalY = G.strips[0].box[1] + G.strips[0].box[3] / 2 - decalSize / 2;
   const decalBoxes = [
@@ -362,6 +370,13 @@ function reset() {
   }
   landingApproach = null; // an in-progress approach doesn't survive a route/mode reset
   awaitingDeparture = null;
+  // CONTRACT.md "Reset": HOME extended to also clear the incident record, so a stale debrief
+  // can't bleed into the next attempt. Trainee-triggered only -- no auto-clear, no timeout, same
+  // as everything else reset() already does. Does NOT clear an active `lock`: an in-progress
+  // catastrophic-lock sequence is a live emergency, not something HOME should let the operator
+  // casually cancel out of -- that would reopen exactly the "not unlocked, earned, or toggled"
+  // door CONTRACT.md's own Catastrophic lock section closes.
+  incident = null;
   setGateSeries(
     route && state.mode === "flight"
       ? advanceFlightGateSeries([], state, route)
@@ -559,6 +574,38 @@ function tickCogitator(dt) {
   );
 }
 
+// Alarm: CONTRACT.md "Catastrophic lock" + "Alarm" -- fires directly off `lock` (Sprint 3), no
+// detectTriggers-style edge table needed since there's exactly one trigger, not several competing
+// ones. Draws straight to its own panel's canvas at native size -- unlike the cogitator, alarm.js
+// fills its whole reference space itself (field + vignette), so there's no separate crop region to
+// composite through.
+const alarmCanvas = $("alarm-canvas");
+alarmCanvas.width = REFERENCE_WIDTH;
+alarmCanvas.height = REFERENCE_HEIGHT;
+const alarm = new Alarm(alarmCanvas);
+const alarmPanelEl = $("alarm-panel");
+function tickAlarm(dt) {
+  alarm.setActive(!!lock);
+  alarmPanelEl.classList.toggle("revealed", !!lock);
+  alarm.update(dt);
+  alarm.draw();
+}
+
+// Debrief: CONTRACT.md "Debrief" -- static, reads whatever `incident` currently holds (Sprint 3's
+// capture; cleared by reset(), see CONTRACT.md "Reset"). No per-frame animation of its own, but
+// ticked from the same loop as everything else for consistency and because redrawing a 640x360
+// canvas once a frame is not a cost worth a separate code path to avoid.
+const debriefCanvas = $("debrief-canvas");
+debriefCanvas.width = REFERENCE_WIDTH;
+debriefCanvas.height = REFERENCE_HEIGHT;
+const debrief = new Debrief(debriefCanvas);
+const debriefPanelEl = $("debrief-panel");
+function tickDebrief() {
+  debrief.setIncident(incident);
+  debriefPanelEl.classList.toggle("revealed", !!incident);
+  debrief.draw();
+}
+
 async function start() {
   viewer = createApplicationViewer({
     container: $("globe"),
@@ -747,7 +794,18 @@ async function start() {
     hudTime = 0,
     manualClock = false;
   function advanceSimulation(dt) {
-    if (!ready || state.paused) return;
+    // Judgment call, flagged per CONTRACT.md's own ambiguity (the Debrief section implies damage
+    // state gates normal controls until reset, but doesn't say how much): freezes the SIMULATION
+    // -- position, altitude, heading, speed -- the instant an incident is captured, exactly like
+    // state.paused already does, reusing the idiom rather than inventing a second one. It does
+    // NOT disable the dashboard: AMBER/SAT/ROAD/BLDG/NAV9/SET and HOME all still work, because
+    // none of them touch advanceSimulation -- only the vehicle itself stops responding. That's
+    // deliberately short of a full lockout (the operator can still look around, check the map,
+    // open settings, and above all still reach HOME) while still ruling out "resuming as though
+    // nothing happened": you cannot just fly on with a debrief on screen. `|| incident` on this
+    // one line is what reverses the whole decision -- delete it and the sim resumes immediately
+    // on recovery/crash instead of waiting for a trainee-triggered reset.
+    if (!ready || state.paused || incident) return;
     // CONTRACT.md "Collision": snapshotted BEFORE this tick's heading/speed/altitude
     // input and position update, so a blocked tick reverts the whole tentative move
     // -- position and altitude together, whichever or both changed -- not a partial
@@ -887,6 +945,8 @@ async function start() {
     if (!manualClock && !document.hidden) {
       advanceSimulation(dt);
       tickCogitator(dt);
+      tickAlarm(dt);
+      tickDebrief();
     }
     viewer.camera.frustum.fov = C.Math.toRadians(
       state.mode === "flight" ? 75 : 60,
@@ -928,7 +988,17 @@ async function start() {
   window.advanceTime = async (ms) => {
     manualClock = true;
     const steps = Math.max(1, Math.round(ms / (1000 / 60)));
-    for (let i = 0; i < steps; i++) advanceSimulation(ms / 1000 / steps);
+    for (let i = 0; i < steps; i++) {
+      const dt = ms / 1000 / steps;
+      advanceSimulation(dt);
+      // tickAlarm/tickDebrief weren't here before Sprint 4 -- without them, this debug hook
+      // advances `lock`/`incident` correctly but the alarm/debrief PANELS never visually update
+      // under manual-clock-driven testing, since only the real preRender loop called them. Found
+      // verifying this sprint live. Not adding tickCogitator here too: that gap predates this
+      // sprint and nothing it drives is part of what Sprint 4 needs to verify.
+      tickAlarm(dt);
+      tickDebrief();
+    }
     last = performance.now();
     viewer.scene.requestRender();
     await new Promise((resolve) => requestAnimationFrame(resolve));
