@@ -60,8 +60,19 @@ export function createLock(state, building, landingApproach, gripping) {
       lat: state.lat,
       assistedApproach: landingApproach
         ? {
-            pad: landingApproach.pad.name,
-            progress: landingApproach.traveled / landingApproach.totalDistance,
+            // Sprint 5: a synthetic ground target (landing.mjs's unrestricted-landing
+            // fallback) has pad.name === null, not a string -- read as "OPEN GROUND"
+            // here rather than carrying the literal null through to the debrief panel,
+            // which would otherwise render it as the word "NULL".
+            pad: landingApproach.pad.name ?? "OPEN GROUND",
+            // A synthetic ground target's totalDistance is 0 (the capture point IS the
+            // target, no horizontal approach needed) -- traveled/totalDistance would be
+            // 0/0 = NaN there. 1 (fully positioned, only descent remains) is the correct
+            // reading, not a fallback-for-a-crash.
+            progress:
+              landingApproach.totalDistance > 0
+                ? landingApproach.traveled / landingApproach.totalDistance
+                : 1,
           }
         : null,
     },

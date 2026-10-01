@@ -408,7 +408,8 @@ input[type="number"] {
    panel-level reveal is a hard cut (no transition), matching the strobe content's own measured
    snap (ALARM-MEASUREMENTS.md #1) rather than contradicting it with a soft fade wrapped around it. */
 .alarm-panel,
-.debrief-panel {
+.debrief-panel,
+.octagon-panel {
   position: absolute;
   overflow: hidden;
   background: #000;
@@ -416,11 +417,13 @@ input[type="number"] {
   pointer-events: none;
 }
 .alarm-panel.revealed,
-.debrief-panel.revealed {
+.debrief-panel.revealed,
+.octagon-panel.revealed {
   opacity: 1;
 }
 .alarm-panel canvas,
-.debrief-panel canvas {
+.debrief-panel canvas,
+.octagon-panel canvas {
   width: 100%;
   height: 100%;
   object-fit: contain;

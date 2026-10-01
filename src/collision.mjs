@@ -44,6 +44,22 @@ export function findCollidingBuilding(lon, lat, altitude, buildings) {
 }
 
 /**
+ * The solid surface directly below (lon, lat): 0 (CONTRACT.md's flat-ground model) unless a
+ * building's footprint contains the point, in which case its roof. Added for Sprint 5's
+ * unrestricted landing (CONTRACT.md "Assisted landing" corrected: landing works on arbitrary
+ * terrain, not only registered pads) -- reads the same footprint data findCollidingBuilding
+ * already does, just answering "what's the ground here" instead of "does this altitude collide".
+ * Highest match wins if footprints ever overlap (defensive; the current extract doesn't).
+ */
+export function groundAltitudeAt(lon, lat, buildings) {
+  let highest = 0;
+  for (const b of buildings) {
+    if (b.height > highest && pointInPolygon([lon, lat], b.points)) highest = b.height;
+  }
+  return highest;
+}
+
+/**
  * Resolves one tick's proposed movement. `from`/`to` are {lon, lat, altitude}
  * triples for the position before and after this tick's tentative update (position
  * AND altitude both, checked together -- a player descending straight down onto a

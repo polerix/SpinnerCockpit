@@ -66,6 +66,21 @@ test("panel index 5 is the rightmost of the bottom row", () => {
   }
 });
 
+// Same guard reasoning again for Sprint 5's octagon panel: spinner.js hardcodes
+// OCTAGON_PANEL_INDEX = 0 rather than deriving it.
+test("panel index 0 is the leftmost of the top row", () => {
+  const g = parseDashboard(
+    readFileSync(new URL("../Spinner Dashboard.svg", import.meta.url), "utf8"),
+  );
+  const topRow = g.panels.slice(0, 3);
+  const target = g.panels[0];
+  const targetX = target.box[0] + target.box[2] / 2;
+  for (const p of topRow) {
+    const px = p.box[0] + p.box[2] / 2;
+    assert.ok(px >= targetX - 0.1, "panel 0 must be at least as far left as every top-row panel");
+  }
+});
+
 // ---------------------------------------------------------------------------------------------
 // detectTriggers: each edge fires exactly once, not on every tick it remains true.
 

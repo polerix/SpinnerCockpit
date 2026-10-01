@@ -1,10 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { distance, movePosition } from "../src/navigation.mjs";
+import { groundAltitudeAt } from "../src/collision.mjs";
 import {
   LANDING_PADS,
   CAPTURE_RADIUS_M,
   CAPTURE_CEILING_M,
+  ARBITRARY_GROUND_CAPTURE_CEILING_M,
   LATERAL_AUTHORITY_M,
   SINK_RATE_MIN_M_S,
   SINK_RATE_MAX_M_S,
@@ -18,6 +21,9 @@ import {
 
 const pad = LANDING_PADS[0];
 const NO_INPUT = { lateral: 0, descent: 0 };
+const realBuildings = JSON.parse(
+  readFileSync(new URL("../public/data/los-angeles.json", import.meta.url)),
+).buildings;
 
 function nearPad(offsetMeters, bearingRadians, altitude, speed = 20) {
   const p = movePosition(pad.lon, pad.lat, bearingRadians, offsetMeters);
@@ -26,16 +32,21 @@ function nearPad(offsetMeters, bearingRadians, altitude, speed = 20) {
 
 test("findCaptureEnvelope: finds the Bradbury pad when close and low, not when far or high", () => {
   const close = nearPad(80, 0, 200);
-  assert.equal(findCaptureEnvelope(close), pad);
+  assert.equal(findCaptureEnvelope(close, realBuildings), pad);
 
   const tooFar = nearPad(CAPTURE_RADIUS_M + 50, 0, 200);
-  assert.equal(findCaptureEnvelope(tooFar), null);
+  assert.equal(findCaptureEnvelope(tooFar, realBuildings), null);
 
   const tooHigh = nearPad(80, 0, CAPTURE_CEILING_M + 50);
-  assert.equal(findCaptureEnvelope(tooHigh), null);
+  assert.equal(findCaptureEnvelope(tooHigh, realBuildings), null);
 
-  const alreadyOnRoof = nearPad(80, 0, pad.groundAltitude - 1);
-  assert.equal(findCaptureEnvelope(alreadyOnRoof), null);
+  // Below the pad's own roof -- real building data (not an empty list) matters here: with
+  // no buildings, the Sprint 5 arbitrary-ground fallback would misread this as open flat
+  // ground and synthesize a target, masking the "already on roof, don't recapture" case
+  // this test is actually checking. The real Bradbury footprint being present is what
+  // makes groundAltitudeAt agree with the pad's own groundAltitude here.
+  const alreadyOnRoof = nearPad(10, 0, pad.groundAltitude - 1);
+  assert.equal(findCaptureEnvelope(alreadyOnRoof, realBuildings), null);
 });
 
 test("hasDeparted: false while still within radius and below the ceiling, true once either is cleared", () => {
@@ -60,9 +71,94 @@ test("a liftoff climbing straight up in place cannot be re-captured until it gen
   for (let altitude = 27; altitude < CAPTURE_CEILING_M + 20; altitude += 3) {
     state.altitude = altitude;
     if (excluded && hasDeparted(state, excluded)) excluded = null;
-    const captured = excluded ? null : findCaptureEnvelope(state);
+    const captured = excluded ? null : findCaptureEnvelope(state, realBuildings);
     assert.equal(captured, null, `must not re-capture ${pad.name} at altitude ${altitude} before it has departed`);
   }
+});
+
+// ---------------------------------------------------------------------------------------------
+// Sprint 5 correction: "landing on docking pads is convenience, but landing occurs without
+// landing pads on any terrain." Pads are checked first and preferred; arbitrary open ground is
+// the fallback, not a separate restricted mode.
+
+const openGround = { lon: -118.259, lat: 34.041 }; // confirmed below: no building footprint here
+
+test("findCaptureEnvelope: falls back to open ground, far from any registered pad, once low enough", () => {
+  assert.equal(
+    groundAltitudeAt(openGround.lon, openGround.lat, realBuildings),
+    0,
+    "fixture must actually be open ground for this test to mean anything",
+  );
+  const d = distance([openGround.lon, openGround.lat], [pad.lon, pad.lat]);
+  assert.ok(d > CAPTURE_RADIUS_M, "fixture must be outside the pad's own capture radius");
+
+  const tooHigh = { ...openGround, altitude: ARBITRARY_GROUND_CAPTURE_CEILING_M + 10, speed: 20 };
+  assert.equal(findCaptureEnvelope(tooHigh, realBuildings), null);
+
+  const low = { ...openGround, altitude: ARBITRARY_GROUND_CAPTURE_CEILING_M - 10, speed: 20 };
+  const target = findCaptureEnvelope(low, realBuildings);
+  assert.ok(target, "must capture over open ground once below the arbitrary-ground ceiling");
+  assert.equal(target.name, null, "a synthetic ground target is distinguishable from a registered pad");
+  assert.ok(Math.abs(target.groundAltitude - 0.5) < 1e-9); // flat ground + PAD_CLEARANCE_M
+});
+
+test("findCaptureEnvelope: a registered pad in range is preferred over the ground-anywhere fallback", () => {
+  // Low enough to also qualify for the arbitrary-ground fallback (which has a much lower
+  // ceiling) AND within the pad's own, more generous capture radius -- the pad must win.
+  const state = nearPad(50, 0, ARBITRARY_GROUND_CAPTURE_CEILING_M - 5);
+  const target = findCaptureEnvelope(state, realBuildings);
+  assert.equal(target, pad);
+});
+
+test("findCaptureEnvelope: descending past the old 40m floor now hands off to capture instead of hitting a wall", () => {
+  // Before Sprint 5, alt()'s own clamp made 40m a hard floor in manual flight -- you could
+  // never actually reach a lower altitude to begin with. The arbitrary-ground ceiling sits
+  // just above that (55m) specifically so a descent gets captured and handed to the assist
+  // BEFORE it would have hit that old wall, converting "the floor stops you" into "the
+  // assist takes over" -- confirms the floor is superseded, not merely still coexisting.
+  const pastOldFloor = { ...openGround, altitude: 40, speed: 42 };
+  const target = findCaptureEnvelope(pastOldFloor, realBuildings);
+  assert.ok(target, "capture should have already engaged by 40m, well below the 55m ceiling");
+});
+
+test("findCaptureEnvelope: moderate-altitude flight far from any pad stays ordinary flight, not an involuntary landing", () => {
+  // The actual concern a lower, separate arbitrary-ground ceiling guards against: casually
+  // flying around at a moderate altitude (well above the old 40m floor, well below the pad's
+  // own 250m) over open terrain must not sweep the operator into a forced landing they never
+  // asked for. If arbitrary ground reused the pad's 250m ceiling, this would incorrectly
+  // capture.
+  const cruisingAround = { ...openGround, altitude: 100, speed: 42 };
+  assert.equal(findCaptureEnvelope(cruisingAround, realBuildings), null);
+});
+
+test("hasDeparted: a synthetic ground target uses the lower arbitrary-ground ceiling, not the pad's 250m", () => {
+  const groundPad = { name: null, lon: openGround.lon, lat: openGround.lat, radius: 5, groundAltitude: 0.5 };
+  const stillLow = { ...openGround, altitude: ARBITRARY_GROUND_CAPTURE_CEILING_M - 5 };
+  assert.equal(hasDeparted(stillLow, groundPad), false);
+  const climbedPastArbitraryCeiling = { ...openGround, altitude: ARBITRARY_GROUND_CAPTURE_CEILING_M + 5 };
+  assert.equal(hasDeparted(climbedPastArbitraryCeiling, groundPad), true);
+  // Below even the PAD's ceiling -- would still be "within range" by the pad's own rules, but
+  // a synthetic target must not use those rules at all.
+  assert.ok(ARBITRARY_GROUND_CAPTURE_CEILING_M + 5 < CAPTURE_CEILING_M);
+});
+
+test("a full approach onto open ground touches down at the correct altitude with no registered pad involved", () => {
+  const state = { ...openGround, altitude: ARBITRARY_GROUND_CAPTURE_CEILING_M - 10, speed: 15 };
+  const target = findCaptureEnvelope(state, realBuildings);
+  let landing = startLandingApproach(state, target),
+    altitude = state.altitude,
+    touchedDown = false,
+    ticks = 0;
+  const dt = 1 / 30;
+  while (!touchedDown && ticks < 20000) {
+    const step = advanceLandingApproach(landing, { ...state, altitude }, NO_INPUT, dt);
+    landing = step.landing;
+    altitude = step.altitude;
+    touchedDown = step.touchedDown;
+    ticks++;
+  }
+  assert.ok(touchedDown);
+  assert.ok(Math.abs(altitude - 0.5) < 1e-6, "must settle at flat ground (0) plus the same clearance margin pads use");
 });
 
 test("startLandingApproach: course line points from capture point straight at the pad", () => {

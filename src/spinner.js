@@ -20,7 +20,6 @@ import {
   navigationNotice,
 } from "./guidance.mjs";
 import {
-  LANDING_PADS,
   findCaptureEnvelope,
   hasDeparted,
   startLandingApproach,
@@ -45,6 +44,11 @@ import { Cogitator, FIELD_BOUNDS, REFERENCE_WIDTH, REFERENCE_HEIGHT } from "./co
 import { Alarm } from "./alarm.js";
 import { Debrief } from "./debrief.js";
 import {
+  OctagonReadout,
+  REFERENCE_WIDTH as OCTAGON_REFERENCE_WIDTH,
+  REFERENCE_HEIGHT as OCTAGON_REFERENCE_HEIGHT,
+} from "./octagon.js";
+import {
   detectTriggers,
   createPanelState,
   tickPanel,
@@ -65,6 +69,7 @@ const COGITATOR_PANEL_INDEX = 3;
 // slots, same guard reasoning as COGITATOR_PANEL_INDEX (see its own test).
 const ALARM_PANEL_INDEX = 1;
 const DEBRIEF_PANEL_INDEX = 5;
+const OCTAGON_PANEL_INDEX = 0;
 let calibration = { screenW: 146.6, screenH: 69.4, offsetX: 0, offsetY: 0 };
 try {
   const saved = JSON.parse(localStorage.getItem("spinner.calibration") || "{}");
@@ -110,6 +115,7 @@ function layout() {
   place($("cogitator-panel"), G.panels[COGITATOR_PANEL_INDEX].box);
   place($("alarm-panel"), G.panels[ALARM_PANEL_INDEX].box);
   place($("debrief-panel"), G.panels[DEBRIEF_PANEL_INDEX].box);
+  place($("octagon-panel"), G.panels[OCTAGON_PANEL_INDEX].box);
   const decalSize = 6;
   const decalY = G.strips[0].box[1] + G.strips[0].box[3] / 2 - decalSize / 2;
   const decalBoxes = [
@@ -216,6 +222,13 @@ const toggleMap = () => {
   state.map = !state.map;
   sync();
 };
+// Sprint 5 flight-feel fix, the identified problem: 2500m ceiling / the old 35m step meant
+// reaching it from flight cruise (380m) took ~61 presses of a single discrete dashboard
+// button -- unusable for a control meant to feel like a quick nudge, not a chore. 100m gets
+// the same climb done in ~21 presses (25 for the full 40-2500m range), a round number close
+// to the held-arrow-key climb rate's own scale (90 m/s -- a little over one second of holding
+// covers one tap's worth of altitude) rather than a small fraction of it.
+const ALT_STEP_M = 100;
 const keysLeft = [
   ["FLY", "Flight mode", () => setMode("flight")],
   ["DRIVE", "Driving mode", () => setMode("drive")],
@@ -244,8 +257,8 @@ const keysLeft = [
     },
   ],
   ["RIGHT", "Steer right", () => steer(0.16)],
-  ["ALT+", "Increase altitude", () => alt(35)],
-  ["ALT-", "Decrease altitude", () => alt(-35)],
+  ["ALT+", "Increase altitude", () => alt(ALT_STEP_M)],
+  ["ALT-", "Decrease altitude", () => alt(-ALT_STEP_M)],
   [
     "SPD+",
     "Set cruising speed",
@@ -606,6 +619,31 @@ function tickDebrief() {
   debrief.draw();
 }
 
+// Octagon: Sprint 5 -- reused as the assisted-landing dock status, per his unobjected
+// proposal: pad or ground capture is dock-engage, liftoff is dock-release. The five-digit
+// counter already counts down on its own fixed, measured rate (octagon.js's own update()) --
+// setValue() is called once, at the moment of capture, to start it; it isn't stepped manually
+// per tick the way a literal altitude readout would be. Started from the captured altitude
+// (rounded metres) so a high capture counts down longer than a low one, without needing the
+// countdown's fixed rate to match actual descent time exactly -- it's a dock-status instrument,
+// not a precision altimeter.
+const octagonCanvas = $("octagon-canvas");
+octagonCanvas.width = OCTAGON_REFERENCE_WIDTH;
+octagonCanvas.height = OCTAGON_REFERENCE_HEIGHT;
+const octagon = new OctagonReadout(octagonCanvas);
+const octagonPanelEl = $("octagon-panel");
+let octagonWasDocked = false;
+function tickOctagon(dt) {
+  const docked = !!landingApproach;
+  if (docked && !octagonWasDocked) octagon.setValue(Math.round(state.altitude));
+  octagonWasDocked = docked;
+  octagonPanelEl.classList.toggle("revealed", docked);
+  if (docked) {
+    octagon.update(dt);
+    octagon.draw();
+  }
+}
+
 async function start() {
   viewer = createApplicationViewer({
     container: $("globe"),
@@ -848,11 +886,13 @@ async function start() {
       }
     } else {
       if (awaitingDeparture && hasDeparted(state, awaitingDeparture)) awaitingDeparture = null;
-      if (state.mode === "flight" && !landingApproach) {
-        const candidates = awaitingDeparture
-          ? LANDING_PADS.filter((p) => p !== awaitingDeparture)
-          : undefined;
-        const pad = findCaptureEnvelope(state, candidates);
+      // Sprint 5: suppresses ALL new capture (registered pad or arbitrary ground) while
+      // still awaiting departure, not just the specific pad just left -- simpler and more
+      // robust than filtering a candidates list now that capture isn't limited to a
+      // registered set. The brief window where a genuinely different, far-away pad can't
+      // be captured until this clears is an accepted trade, not a gap found in practice.
+      if (state.mode === "flight" && !landingApproach && !awaitingDeparture) {
+        const pad = findCaptureEnvelope(state, buildingRecords);
         if (pad) landingApproach = startLandingApproach(state, pad);
       }
       if (state.mode === "flight" && landingApproach) {
@@ -947,6 +987,7 @@ async function start() {
       tickCogitator(dt);
       tickAlarm(dt);
       tickDebrief();
+      tickOctagon(dt);
     }
     viewer.camera.frustum.fov = C.Math.toRadians(
       state.mode === "flight" ? 75 : 60,
@@ -998,6 +1039,7 @@ async function start() {
       // sprint and nothing it drives is part of what Sprint 4 needs to verify.
       tickAlarm(dt);
       tickDebrief();
+      tickOctagon(dt); // same gap, same fix, for Sprint 5's new panel
     }
     last = performance.now();
     viewer.scene.requestRender();

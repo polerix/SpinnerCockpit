@@ -11,8 +11,8 @@
     />
     <title>Spinner · Los Angeles</title>
     <link rel="icon" href="data:," />
-    <script type="module" crossorigin src="/SpinnerCockpit/assets/app-DLagoDNR.js"></script>
-    <link rel="stylesheet" crossorigin href="/SpinnerCockpit/assets/app-BSKIzXMj.css">
+    <script type="module" crossorigin src="/SpinnerCockpit/assets/app-CY6iCdbA.js"></script>
+    <link rel="stylesheet" crossorigin href="/SpinnerCockpit/assets/app-ByNiSQSZ.css">
   </head>
   <body>
     <main id="cockpit" aria-label="Spinner cockpit, Los Angeles">
@@ -62,6 +62,13 @@
            boolean and this panel reveals itself, same idiom as the cogitator above. -->
       <div id="alarm-panel" class="alarm-panel" aria-hidden="true">
         <canvas id="alarm-canvas"></canvas>
+      </div>
+      <!-- Sprint 5: the octagon readout, reused as the assisted-landing dock status -- pad/
+           ground capture is dock-engage, liftoff is dock-release (its own five-digit counter
+           already counts down on its own fixed, measured rate; here it just gets started once
+           at capture rather than driven step by step). -->
+      <div id="octagon-panel" class="octagon-panel" aria-hidden="true">
+        <canvas id="octagon-canvas"></canvas>
       </div>
       <!-- CONTRACT.md "Debrief": its own dedicated main window, static/readable/after-the-fact,
            separate from the live/reactive alarm above. -->

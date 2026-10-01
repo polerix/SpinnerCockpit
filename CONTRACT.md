@@ -313,6 +313,23 @@ keyboard input remains what the sprints are built and tested against.
   cheap, well-motivated addition whenever it's wanted (heavy assist for
   early training, none for a checkride) — flagged, not built. Stage 1 ships
   one fixed 80/20 level.
+- **Water landing / flooding.** Sprint 5 checked `public/data/los-angeles.json`
+  directly: no water data of any kind — no `water` key in the schema, no
+  water-tagged roads, nothing. The bbox is 2km of downtown; the LA River
+  isn't in this extract. His own framing, for when water data exists: a
+  water landing isn't refused — the system targets the solid ground *beneath*
+  the water (riverbed), same `groundAltitudeAt` mechanism Sprint 5 already
+  built for unrestricted landing generally. The spinner floats in an
+  emergency; flooding only happens if the environment is opened. **That
+  connection is the reason this is worth recording even though nothing is
+  built**: ENVIRON CTR (the cogitator panel) *is* the environment control, so
+  "open the environment while floating" is what floods the cabin — a real
+  consequence hung off a screen that's otherwise decorative, not a numeric
+  damage model (consistent with "no persistent damage model" under
+  Collision — this would be a discrete flooded/not-flooded state change, the
+  same shape as the crashed/incident-in-progress flag already is, not a
+  second damage system). Deliberately not scoped into Sprint 5 — "finish the
+  software as is" — and blocked on water data existing at all regardless.
 
 ## Sprint plan
 

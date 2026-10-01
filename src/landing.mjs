@@ -5,10 +5,32 @@
 // re-check.
 
 import { distance, bearing, movePosition } from "./navigation.mjs";
+import { groundAltitudeAt } from "./collision.mjs";
 
 export const CAPTURE_RADIUS_M = 150; // horizontal proximity that arms capture
 export const CAPTURE_CEILING_M = 250; // must already be below this to be captured --
 // keeps a normal cruise pass overhead (380m) from being swept into an approach
+
+// Sprint 5 correction (his words): "landing on docking pads is convenience, but landing
+// occurs without landing pads on any terrain -- fields, roads, construction sites." Pads
+// were never the mechanism -- advanceLandingApproach already only ever consumed a plain
+// {lon, lat, radius, groundAltitude} target, agnostic to where it came from. The actual
+// restriction was entirely in findCaptureEnvelope only ever checking the registered list.
+// A LOWER, separate ceiling for the ground-anywhere case, not the pad's 250m: judgment
+// call, flagged. Pad capture at 250m is fine because approaching a REGISTERED pad is
+// always intentional -- but if arbitrary ground used the same 250m ceiling, routine
+// moderate-altitude flight (sightseeing, approaching a building to look at it) ANYWHERE
+// under 250m would involuntarily sweep the operator into a forced landing with no way to
+// abort mid-descent (sink rate is always positive once captured -- see
+// advanceLandingApproach). Set just above the pre-Sprint-5 40m manual-flight floor, on
+// purpose, not despite it: that floor was a hard wall no manual descent could ever cross,
+// so a ceiling just above it means a real descent gets handed off to the assist right
+// before it would have hit that wall, rather than the wall and the assist coexisting at
+// different altitudes. The floor is superseded, not preserved.
+export const ARBITRARY_GROUND_CAPTURE_CEILING_M = 55;
+export const ARBITRARY_GROUND_RADIUS_M = 5; // nominal only -- the synthetic target IS the
+// capture point (totalDistance 0), so there's no real "miss" to guard against the way a
+// pad's own radius does.
 
 export const LATERAL_AUTHORITY_M = 3; // CONTRACT.md illustrative number
 export const LATERAL_OVERSHOOT_M = LATERAL_AUTHORITY_M * 2; // how far the RAW request can
@@ -61,12 +83,17 @@ function stepToward(current, target, maxStep) {
 }
 
 /**
- * The nearest pad whose capture envelope currently contains `state`, or null. Pure
- * proximity + altitude check -- no mode/map gating here, that's the caller's business
+ * The nearest pad whose capture envelope currently contains `state`, or (Sprint 5) a
+ * synthetic target for the ground directly below if no registered pad is in range but
+ * the craft is low enough to be clearly committing to landing. Registered pads are
+ * checked first and preferred when in range -- "easier or signposted", per CONTRACT.md's
+ * correction, not the only option. `buildings` is required for the arbitrary-ground
+ * fallback (groundAltitudeAt needs the same footprint data collision.mjs uses); pure
+ * proximity + altitude otherwise -- no mode/map gating here, that's the caller's business
  * (spinner.js only calls this in flight mode), same separation guidance.mjs already
  * uses for state.mode.
  */
-export function findCaptureEnvelope(state, pads = LANDING_PADS) {
+export function findCaptureEnvelope(state, buildings, pads = LANDING_PADS) {
   let nearest = null;
   for (const pad of pads) {
     const d = distance([state.lon, state.lat], [pad.lon, pad.lat]);
@@ -78,7 +105,20 @@ export function findCaptureEnvelope(state, pads = LANDING_PADS) {
     )
       nearest = { pad, distance: d };
   }
-  return nearest ? nearest.pad : null;
+  if (nearest) return nearest.pad;
+
+  const groundAltitude = groundAltitudeAt(state.lon, state.lat, buildings) + PAD_CLEARANCE_M;
+  if (state.altitude <= ARBITRARY_GROUND_CAPTURE_CEILING_M && state.altitude > groundAltitude) {
+    return {
+      name: null, // marks this as a synthetic ground target, not a registered pad --
+      // hasDeparted below reads this to pick the right ceiling/radius check.
+      lon: state.lon,
+      lat: state.lat,
+      radius: ARBITRARY_GROUND_RADIUS_M,
+      groundAltitude,
+    };
+  }
+  return null;
 }
 
 /**
@@ -96,6 +136,13 @@ export function findCaptureEnvelope(state, pads = LANDING_PADS) {
  * that loop: the craft has to actually leave, not just twitch past a local threshold.
  */
 export function hasDeparted(state, pad) {
+  // Synthetic ground target (Sprint 5): there's no fixed real-world point to measure
+  // distance from -- it was wherever the craft happened to be at capture, and a fresh one
+  // gets synthesized at the new position the moment this clears. Ceiling-only, and the
+  // LOWER arbitrary-ground ceiling, not the pad's 250m -- climbing back out of an
+  // unintended low-altitude capture shouldn't require climbing all the way to pad-ceiling
+  // altitude just because the capture itself only needed 55m to trigger.
+  if (pad.name === null) return state.altitude > ARBITRARY_GROUND_CAPTURE_CEILING_M;
   return (
     distance([state.lon, state.lat], [pad.lon, pad.lat]) > CAPTURE_RADIUS_M ||
     state.altitude > CAPTURE_CEILING_M
